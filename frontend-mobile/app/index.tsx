@@ -115,11 +115,11 @@ function MapScreen() {
         // ⏳ Displays a loading spinner while map tiles download
         loadingEnabled={true} 
       >
-        {displayedClinics.map((c) => (
-          <Marker
-            key={`clinic-${c.id}`}
-            coordinate={{ latitude: Number(c.lat), longitude: Number(c.lng) }}
-          >
+        {displayedClinics.map((c, index) => (
+        <Marker
+          key={`clinic-${c.id || index}`} // 👈 Use the MongoDB _id or the loop index
+          coordinate={{ latitude: Number(c.lat), longitude: Number(c.lng) }}
+        >
             <View style={[styles.customMarker, c.medicaid && { borderColor: 'green' }]}>
               <Ionicons 
                 name={c.type === 'medical' ? "medical" : c.type === 'amenity' ? "woman" : "heart"} 
