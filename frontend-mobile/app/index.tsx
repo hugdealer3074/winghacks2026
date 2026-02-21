@@ -36,6 +36,8 @@ interface Product {
 }
 
 const Tab = createBottomTabNavigator();
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const BRAND_COLOR = "hotpink";
 
 // 🎨 Component: Branded Loading State
 function EmptyState({ message }: { message: string }) {
@@ -54,23 +56,19 @@ function MapScreen() {
   const [filter, setFilter] = useState('All'); 
   const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
 
+  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [locationDenied, setLocationDenied] = useState(false);
   useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        let loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-        setUserLocation(loc.coords);
-      }
-
-      try {
-        const res = await axios.get(`${BACKEND_URL}/clinics`);
+    axios.get(`${BACKEND_URL}/clinics`)
+      .then(res => {
+        console.log("CLINICS RECEIVED:", res.data);
         setClinics(res.data);
-      } catch (err) {
-        console.error("Error fetching clinics:", err);
-      } finally {
         setLoading(false);
-      }
-    })();
+      })
+      .catch((error) => {
+        console.log("CLINICS ERROR:", error);
+        setLoading(false);
+      });
   }, []);
 
   const displayedClinics = clinics.filter(c => {
