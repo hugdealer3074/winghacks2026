@@ -10,8 +10,8 @@ import * as Location from 'expo-location';
 
 // ---------------- Constants & Theming ----------------
 const BACKEND_URL = "http://10.136.205.166:8000"; 
-const BRAND_COLOR = "#7B1FA2"; // Deep, trustworthy purple
-const LIGHT_PURPLE = "#F3E5F5"; // Soft lavender background
+const BRAND_COLOR = "#7B1FA2"; 
+const LIGHT_PURPLE = "#F3E5F5"; 
 
 // ---------------- Types ----------------
 interface Clinic {
@@ -37,7 +37,6 @@ interface Product {
 
 const Tab = createBottomTabNavigator();
 
-// 🎨 Component: Branded Loading State
 function EmptyState({ message }: { message: string }) {
   return (
     <View style={styles.center}>
@@ -61,7 +60,6 @@ function MapScreen() {
         let loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
         setUserLocation(loc.coords);
       }
-
       try {
         const res = await axios.get(`${BACKEND_URL}/clinics`);
         setClinics(res.data);
@@ -83,18 +81,12 @@ function MapScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 🚀 Floating Pill Container */}
       <View style={styles.pillContainer}>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          contentContainerStyle={{ paddingHorizontal: 15 }}
-        >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 15 }}>
           {['Medical', 'Community', 'Medicaid'].map((cat) => (
             <TouchableOpacity 
               key={cat} 
               style={[styles.filterPill, filter === cat && styles.activePill]}
-              // Toggle logic: click again to deselect
               onPress={() => setFilter(prev => prev === cat ? 'All' : cat)}
             >
               <Ionicons 
@@ -165,12 +157,15 @@ function ProductsScreen() {
 
   const filtered = products.filter(p => p.price <= maxPrice);
 
-  if (loading) return <EmptyState message="Looking for the best deals in GNV..." />;
+  if (loading) return <EmptyState message="Scouting Gainesville for deals..." />;
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.priceFilterContainer}>
-        <Text style={styles.header}>Necessities Under ${maxPrice}</Text>
+        <View style={styles.priceHeaderRow}>
+           <Text style={styles.priceHeaderText}>Budget Friendly</Text>
+           <Text style={styles.priceValueText}>Under ${maxPrice}</Text>
+        </View>
         <Slider
           style={{ width: '100%', height: 40 }}
           minimumValue={0}
@@ -182,16 +177,45 @@ function ProductsScreen() {
           thumbTintColor={BRAND_COLOR}
         />
       </View>
-      {filtered.map((p, index) => (
-        <View key={`product-${p._id || index}`} style={styles.item}>
-          <View style={styles.productHeader}>
-            <Text style={styles.title}>{p.name}</Text>
-            <Text style={styles.price}>{p.price === 0 ? "FREE" : `$${p.price.toFixed(2)}`}</Text>
-          </View>
-          <Text style={styles.storeSubtext}>🛒 {p.store} ({p.brand})</Text>
-        </View>
-      ))}
-    </ScrollView>
+
+      <ScrollView contentContainerStyle={styles.scrollPadding}>
+        {filtered.length > 0 ? (
+          filtered.map((p, index) => (
+            <View key={`product-${p._id || index}`} style={styles.productCard}>
+              <View style={styles.cardLeft}>
+                <View style={styles.iconCircle}>
+                  <Ionicons 
+                    name={p.name.toLowerCase().includes('vitamin') ? "medkit" : "nutrition"} 
+                    size={20} 
+                    color={BRAND_COLOR} 
+                  />
+                </View>
+                <View>
+                  <Text style={styles.productTitle}>{p.name}</Text>
+                  <Text style={styles.brandText}>{p.brand}</Text>
+                  <View style={styles.storeBadge}>
+                    <Ionicons name="location" size={12} color="#666" />
+                    <Text style={styles.storeText}>{p.store}</Text>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.cardRight}>
+                <Text style={[styles.productPrice, p.price === 0 && styles.freeText]}>
+                  {p.price === 0 ? "FREE" : `$${p.price.toFixed(2)}`}
+                </Text>
+                {p.price === 0 ? (
+                  <View style={styles.savingsTag}>
+                    <Text style={styles.savingsLabel}>COMMUNITY</Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.noResults}>No resources found in this price range.</Text>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -212,46 +236,28 @@ export default function Index() {
     <Tab.Navigator screenOptions={({ route }) => ({
       tabBarActiveTintColor: BRAND_COLOR,
       tabBarInactiveTintColor: 'gray',
-      headerStyle: { 
-        backgroundColor: BRAND_COLOR, 
-        height: 80, 
-      },
-      headerTitleStyle: {
-        fontSize: 16, 
-      },
+      headerStyle: { backgroundColor: BRAND_COLOR, height: 80 },
+      headerTitleStyle: { fontSize: 16 },
       headerTintColor: '#fff',
       tabBarIcon: ({ color, size }) => {
         let icon: any = route.name === 'Map' ? 'map' : route.name === 'Products' ? 'cart' : 'chatbubbles';
         return <Ionicons name={icon} size={size} color={color} />;
       },
     })}>
-      <Tab.Screen name="Map" component={MapScreen} options={{ title: 'GNV Resource Map' }} />
+      <Tab.Screen name="Map" component={MapScreen} options={{ title: 'Care Resource Map' }} />
       <Tab.Screen name="Products" component={ProductsScreen} options={{ title: 'Essentials' }} />
       <Tab.Screen name="Chat" component={ChatScreen} options={{ title: 'AI Support' }} />
     </Tab.Navigator>
   );
 }
 
-// ---------------- Styles ----------------
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
   emptyText: { marginTop: 15, fontSize: 16, color: 'gray', textAlign: 'center' },
   header: { fontSize: 22, fontWeight: 'bold', marginBottom: 10 },
   priceFilterContainer: { padding: 20, backgroundColor: '#fdfdfd', borderBottomWidth: 1, borderBottomColor: '#eee' },
-  item: { padding: 20, borderBottomWidth: 1, borderBottomColor: "#f9f9f9" },
-  productHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  title: { fontSize: 17, fontWeight: "600" },
-  price: { fontSize: 17, color: BRAND_COLOR, fontWeight: 'bold' },
-  storeSubtext: { fontSize: 13, color: 'gray', marginTop: 4 },
-  
-  // Floating Pill Styles
-  pillContainer: {
-    position: 'absolute',
-    top: 15, 
-    zIndex: 10,
-    width: '100%',
-  },
+  pillContainer: { position: 'absolute', top: 15, zIndex: 10, width: '100%' },
   filterPill: {
     flexDirection: 'row',
     backgroundColor: 'white',
@@ -260,55 +266,53 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     marginRight: 10,
     alignItems: 'center',
-    elevation: 8, // High elevation for a floating look
+    elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
   },
-  activePill: { 
-    backgroundColor: BRAND_COLOR, 
-    elevation: 2,
-  },
-  pillText: { 
-    fontWeight: '700', 
-    fontSize: 13, 
-    color: '#555' 
-  },
-  activePillText: { 
-    color: 'white' 
-  },
-
-  // Map Component Styling
-  customMarker: { 
-    backgroundColor: BRAND_COLOR, 
-    padding: 6, 
-    borderRadius: 20, 
-    borderWidth: 2, 
-    borderColor: 'white', 
-    elevation: 5 
-  },
+  activePill: { backgroundColor: BRAND_COLOR, elevation: 2 },
+  pillText: { fontWeight: '700', fontSize: 13, color: '#555' },
+  activePillText: { color: 'white' },
+  customMarker: { backgroundColor: BRAND_COLOR, padding: 6, borderRadius: 20, borderWidth: 2, borderColor: 'white', elevation: 5 },
   calloutBox: { width: 180, padding: 5 },
   calloutTitle: { fontWeight: 'bold', fontSize: 14 },
   calloutDesc: { fontSize: 11, color: 'gray', marginVertical: 4 },
   amenityRow: { flexDirection: 'row', marginTop: 5 },
-  tag: { 
-    fontSize: 10, 
-    backgroundColor: '#f0f0f0', 
-    padding: 3, 
-    borderRadius: 5, 
-    marginRight: 5 
+  tag: { fontSize: 10, backgroundColor: '#f0f0f0', padding: 3, borderRadius: 5, marginRight: 5 },
+  medicaidTag: { backgroundColor: LIGHT_PURPLE, color: BRAND_COLOR },
+  scrollPadding: { padding: 15 },
+  priceHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
+  priceHeaderText: { fontSize: 14, color: '#666', fontWeight: '600' },
+  priceValueText: { fontSize: 18, color: BRAND_COLOR, fontWeight: 'bold' },
+  productCard: {
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  medicaidTag: { 
-    backgroundColor: LIGHT_PURPLE, 
-    color: BRAND_COLOR 
-  },
-  chatSub: { 
-    color: 'gray', 
-    textAlign: 'center', 
-    marginTop: 10, 
-    lineHeight: 20 
-  }
+  cardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  iconCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: LIGHT_PURPLE, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  productTitle: { fontSize: 16, fontWeight: '700', color: '#333' },
+  brandText: { fontSize: 12, color: '#888', marginBottom: 4 },
+  storeBadge: { flexDirection: 'row', alignItems: 'center' },
+  storeText: { fontSize: 12, color: '#666', marginLeft: 4 },
+  cardRight: { alignItems: 'flex-end' },
+  productPrice: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  freeText: { color: '#2ecc71' },
+  savingsTag: { backgroundColor: BRAND_COLOR, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4 },
+  savingsLabel: { color: 'white', fontSize: 8, fontWeight: 'bold' },
+  noResults: { textAlign: 'center', marginTop: 50, color: 'gray' },
+  chatSub: { color: 'gray', textAlign: 'center', marginTop: 10, lineHeight: 20 }
 });
 
 registerRootComponent(Index);
