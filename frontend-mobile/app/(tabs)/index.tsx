@@ -2,16 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import axios from 'axios';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { registerRootComponent } from 'expo';
 import { Ionicons } from '@expo/vector-icons';
-import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
+import ProfileMenu from '@/components/ProfileMenu';
 
 // ---------------- Constants & Theming ----------------
-const BACKEND_URL = "http://10.136.205.166:8000"; 
-const BRAND_COLOR = "#7B1FA2"; // Deep, trustworthy purple
-const LIGHT_PURPLE = "#F3E5F5"; // Soft lavender background
+const BACKEND_URL = "http://10.136.142.2:8000";
+const BRAND_COLOR = "#8B5CF6";
+const LIGHT_PURPLE = "#F3E5F5";
 
 // ---------------- Types ----------------
 interface Clinic {
@@ -27,16 +25,6 @@ interface Clinic {
   description: string;
 }
 
-interface Product {
-  _id: string; 
-  name: string;
-  price: number;
-  store: string;
-  brand: string;
-}
-
-const Tab = createBottomTabNavigator();
-
 // 🎨 Component: Branded Loading State
 function EmptyState({ message }: { message: string }) {
   return (
@@ -48,11 +36,12 @@ function EmptyState({ message }: { message: string }) {
 }
 
 // ---------------- Map Screen ----------------
-function MapScreen() {
+export default function MapScreen() {
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All'); 
   const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -83,18 +72,25 @@ function MapScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Menu Button */}
+      <TouchableOpacity 
+        style={styles.menuButton}
+        onPress={() => setMenuVisible(true)}
+      >
+        <Ionicons name="menu" size={28} color="white" />
+      </TouchableOpacity>
+
       {/* 🚀 Floating Pill Container */}
       <View style={styles.pillContainer}>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false} 
-          contentContainerStyle={{ paddingHorizontal: 15 }}
+          contentContainerStyle={{ paddingHorizontal: 15, paddingLeft: 70 }}
         >
           {['Medical', 'Community', 'Medicaid'].map((cat) => (
             <TouchableOpacity 
               key={cat} 
               style={[styles.filterPill, filter === cat && styles.activePill]}
-              // Toggle logic: click again to deselect
               onPress={() => setFilter(prev => prev === cat ? 'All' : cat)}
             >
               <Ionicons 
@@ -147,88 +143,13 @@ function MapScreen() {
           </Marker>
         ))}
       </MapView>
+
+      {/* Profile Menu */}
+      <ProfileMenu 
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+      />
     </View>
-  );
-}
-
-// ---------------- Products Screen ----------------
-function ProductsScreen() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [maxPrice, setMaxPrice] = useState(25);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    axios.get(`${BACKEND_URL}/products`)
-      .then(res => { setProducts(res.data); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
-
-  const filtered = products.filter(p => p.price <= maxPrice);
-
-  if (loading) return <EmptyState message="Looking for the best deals in GNV..." />;
-
-  return (
-    <ScrollView style={styles.container}>
-      <View style={styles.priceFilterContainer}>
-        <Text style={styles.header}>Necessities Under ${maxPrice}</Text>
-        <Slider
-          style={{ width: '100%', height: 40 }}
-          minimumValue={0}
-          maximumValue={40}
-          step={5}
-          value={maxPrice}
-          onValueChange={setMaxPrice}
-          minimumTrackTintColor={BRAND_COLOR}
-          thumbTintColor={BRAND_COLOR}
-        />
-      </View>
-      {filtered.map((p, index) => (
-        <View key={`product-${p._id || index}`} style={styles.item}>
-          <View style={styles.productHeader}>
-            <Text style={styles.title}>{p.name}</Text>
-            <Text style={styles.price}>{p.price === 0 ? "FREE" : `$${p.price.toFixed(2)}`}</Text>
-          </View>
-          <Text style={styles.storeSubtext}>🛒 {p.store} ({p.brand})</Text>
-        </View>
-      ))}
-    </ScrollView>
-  );
-}
-
-// ---------------- Chat Screen ----------------
-function ChatScreen() {
-  return (
-    <View style={styles.center}>
-      <Ionicons name="chatbubbles-outline" size={80} color={BRAND_COLOR} />
-      <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#333' }}>GatorFamily AI</Text>
-      <Text style={styles.chatSub}>Powered by Gemini. Ask about clinic eligibility or local baby supplies.</Text>
-    </View>
-  );
-}
-
-// ---------------- Main Entry ----------------
-export default function Index() {
-  return (
-    <Tab.Navigator screenOptions={({ route }) => ({
-      tabBarActiveTintColor: BRAND_COLOR,
-      tabBarInactiveTintColor: 'gray',
-      headerStyle: { 
-        backgroundColor: BRAND_COLOR, 
-        height: 80, 
-      },
-      headerTitleStyle: {
-        fontSize: 16, 
-      },
-      headerTintColor: '#fff',
-      tabBarIcon: ({ color, size }) => {
-        let icon: any = route.name === 'Map' ? 'map' : route.name === 'Products' ? 'cart' : 'chatbubbles';
-        return <Ionicons name={icon} size={size} color={color} />;
-      },
-    })}>
-      <Tab.Screen name="Map" component={MapScreen} options={{ title: 'GNV Resource Map' }} />
-      <Tab.Screen name="Products" component={ProductsScreen} options={{ title: 'Essentials' }} />
-      <Tab.Screen name="Chat" component={ChatScreen} options={{ title: 'AI Support' }} />
-    </Tab.Navigator>
   );
 }
 
@@ -237,18 +158,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
   emptyText: { marginTop: 15, fontSize: 16, color: 'gray', textAlign: 'center' },
-  header: { fontSize: 22, fontWeight: 'bold', marginBottom: 10 },
-  priceFilterContainer: { padding: 20, backgroundColor: '#fdfdfd', borderBottomWidth: 1, borderBottomColor: '#eee' },
-  item: { padding: 20, borderBottomWidth: 1, borderBottomColor: "#f9f9f9" },
-  productHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  title: { fontSize: 17, fontWeight: "600" },
-  price: { fontSize: 17, color: BRAND_COLOR, fontWeight: 'bold' },
-  storeSubtext: { fontSize: 13, color: 'gray', marginTop: 4 },
   
   // Floating Pill Styles
   pillContainer: {
     position: 'absolute',
-    top: 15, 
+    top: 55, 
     zIndex: 10,
     width: '100%',
   },
@@ -260,7 +174,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     marginRight: 10,
     alignItems: 'center',
-    elevation: 8, // High elevation for a floating look
+    elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -303,12 +217,21 @@ const styles = StyleSheet.create({
     backgroundColor: LIGHT_PURPLE, 
     color: BRAND_COLOR 
   },
-  chatSub: { 
-    color: 'gray', 
-    textAlign: 'center', 
-    marginTop: 10, 
-    lineHeight: 20 
-  }
+  menuButton: {
+    position: 'absolute',
+    top: 50,        // ← CHANGE THIS
+    left: 15,
+    backgroundColor: '#8B5CF6',
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
 });
-
-registerRootComponent(Index);
