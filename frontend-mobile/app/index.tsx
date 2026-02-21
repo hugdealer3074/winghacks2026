@@ -77,7 +77,7 @@ function MapScreen() {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         let loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-        setUserLocation(loc.coords);
+        setUserCoords(loc.coords);
       }
       try {
         const res = await axios.get(`${BACKEND_URL}/clinics`);
