@@ -8,9 +8,14 @@ import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
 
-// 1. Types for high-quality data handling
+// ---------------- Constants & Theming ----------------
+const BACKEND_URL = "http://10.136.205.166:8000"; 
+const BRAND_COLOR = "#7B1FA2"; // Deep, trustworthy purple
+const LIGHT_PURPLE = "#F3E5F5"; // Soft lavender background
+
+// ---------------- Types ----------------
 interface Clinic {
-  id: number;
+  _id: string;   
   name: string;
   lat: number;
   lng: number;
@@ -23,7 +28,7 @@ interface Clinic {
 }
 
 interface Product {
-  id: number;
+  _id: string; 
   name: string;
   price: number;
   store: string;
@@ -31,10 +36,8 @@ interface Product {
 }
 
 const Tab = createBottomTabNavigator();
-const BACKEND_URL = "http://10.136.205.166:8000"; 
-const BRAND_COLOR = "hotpink";
 
-// 🎨 Component: Branded Loading State for UI/UX Track
+// 🎨 Component: Branded Loading State
 function EmptyState({ message }: { message: string }) {
   return (
     <View style={styles.center}>
@@ -44,30 +47,21 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
-// ---------------- Map Screen (Medicaid Filter & Custom Markers) ----------------
+// ---------------- Map Screen ----------------
 function MapScreen() {
   const [clinics, setClinics] = useState<Clinic[]>([]);
-  const [filterMedicaid, setFilterMedicaid] = useState(false);
   const [loading, setLoading] = useState(true);
-  // Add state to store user coordinates
+  const [filter, setFilter] = useState('All'); 
   const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
 
   useEffect(() => {
     (async () => {
-      // 1. Request foreground permissions
       let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        console.error('Permission to access location was denied');
-        return;
+      if (status === 'granted') {
+        let loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        setUserLocation(loc.coords);
       }
 
-      // 2. Get initial high-accuracy position
-      let loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-      setUserLocation(loc.coords);
-
-      // 3. Fetch clinic data from your backend
       try {
         const res = await axios.get(`${BACKEND_URL}/clinics`);
         setClinics(res.data);
@@ -79,21 +73,42 @@ function MapScreen() {
     })();
   }, []);
 
-  const displayedClinics = filterMedicaid ? clinics.filter(c => c.medicaid) : clinics;
+  const displayedClinics = clinics.filter(c => {
+    if (filter === 'All') return true;
+    if (filter === 'Medicaid') return c.medicaid === true;
+    return c.type.toLowerCase() === filter.toLowerCase();
+  });
 
   if (loading) return <EmptyState message="Finding the best care in Gainesville..." />;
 
   return (
     <View style={styles.container}>
-      {/* Medicaid Toggle Filter Bar */}
-      <View style={styles.filterBar}>
-        <TouchableOpacity 
-          onPress={() => setFilterMedicaid(!filterMedicaid)}
-          style={[styles.filterBtn, filterMedicaid && styles.filterBtnActive]}
+      {/* 🚀 Floating Pill Container */}
+      <View style={styles.pillContainer}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={{ paddingHorizontal: 15 }}
         >
-          <Ionicons name={filterMedicaid ? "shield-checkmark" : "shield-outline"} size={18} color={filterMedicaid ? "green" : "#555"} />
-          <Text style={styles.filterText}>{filterMedicaid ? " Medicaid Verified" : " All Resources"}</Text>
-        </TouchableOpacity>
+          {['Medical', 'Community', 'Medicaid'].map((cat) => (
+            <TouchableOpacity 
+              key={cat} 
+              style={[styles.filterPill, filter === cat && styles.activePill]}
+              // Toggle logic: click again to deselect
+              onPress={() => setFilter(prev => prev === cat ? 'All' : cat)}
+            >
+              <Ionicons 
+                name={cat === 'Medicaid' ? 'shield-checkmark' : 'options-outline'} 
+                size={14} 
+                color={filter === cat ? 'white' : BRAND_COLOR} 
+                style={{ marginRight: 5 }}
+              />
+              <Text style={[styles.pillText, filter === cat && styles.activePillText]}>
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       <MapView
@@ -101,42 +116,34 @@ function MapScreen() {
         initialRegion={{
           latitude: 29.6516,
           longitude: -82.3248,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
+          latitudeDelta: 0.08,
+          longitudeDelta: 0.08,
         }}
-        // 🔵 Shows the user's "Blue Dot"
-        showsUserLocation={true} 
-        // 🎯 Focuses the map on the user (iOS/Apple Maps only)
-        followsUserLocation={true} 
-        // 🔘 Adds the native button to snap back to your position
-        showsMyLocationButton={true} 
-        // 🧭 Displays the orientation compass
-        showsCompass={true} 
-        // ⏳ Displays a loading spinner while map tiles download
-        loadingEnabled={true} 
+        showsUserLocation={true}
+        showsMyLocationButton={true}
       >
         {displayedClinics.map((c, index) => (
-        <Marker
-          key={`clinic-${c.id || index}`} // 👈 Use the MongoDB _id or the loop index
-          coordinate={{ latitude: Number(c.lat), longitude: Number(c.lng) }}
-        >
-            <View style={[styles.customMarker, c.medicaid && { borderColor: 'green' }]}>
-              <Ionicons 
-                name={c.type === 'medical' ? "medical" : c.type === 'amenity' ? "woman" : "heart"} 
-                size={16} 
-                color="white" 
-              />
-            </View>
-            <Callout>
-               <View style={styles.calloutBox}>
-                 <Text style={styles.calloutTitle}>{c.name}</Text>
-                 <Text style={styles.calloutDesc}>{c.description}</Text>
-                 <View style={styles.amenityRow}>
-                   {c.family_restroom && <Text style={styles.tag}>🚻 Restroom</Text>}
-                   {c.changing_table && <Text style={styles.tag}>🤱 Changing</Text>}
-                 </View>
-               </View>
-            </Callout>
+          <Marker
+            key={`marker-${c._id || index}`} 
+            coordinate={{ latitude: Number(c.lat), longitude: Number(c.lng) }}
+          >
+             <View style={[styles.customMarker, c.medicaid && { borderColor: '#2ecc71', borderWidth: 3 }]}>
+               <Ionicons 
+                 name={c.type === 'medical' ? "medical" : c.type === 'amenity' ? "woman" : "heart"} 
+                 size={16} 
+                 color="white" 
+               />
+             </View>
+             <Callout>
+                <View style={styles.calloutBox}>
+                  <Text style={styles.calloutTitle}>{c.name}</Text>
+                  <Text style={styles.calloutDesc}>{c.description}</Text>
+                  <View style={styles.amenityRow}>
+                    {c.medicaid && <Text style={[styles.tag, styles.medicaidTag]}>🛡️ Medicaid</Text>}
+                    {c.family_restroom && <Text style={styles.tag}>🚻 Restroom</Text>}
+                  </View>
+                </View>
+             </Callout>
           </Marker>
         ))}
       </MapView>
@@ -144,7 +151,7 @@ function MapScreen() {
   );
 }
 
-// ---------------- Products Screen (Price Slider Filter) ----------------
+// ---------------- Products Screen ----------------
 function ProductsScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [maxPrice, setMaxPrice] = useState(25);
@@ -175,8 +182,8 @@ function ProductsScreen() {
           thumbTintColor={BRAND_COLOR}
         />
       </View>
-      {filtered.map((p) => (
-        <View key={p.id} style={styles.item}>
+      {filtered.map((p, index) => (
+        <View key={`product-${p._id || index}`} style={styles.item}>
           <View style={styles.productHeader}>
             <Text style={styles.title}>{p.name}</Text>
             <Text style={styles.price}>{p.price === 0 ? "FREE" : `$${p.price.toFixed(2)}`}</Text>
@@ -188,7 +195,7 @@ function ProductsScreen() {
   );
 }
 
-// ---------------- Chat Screen (Gemini Placeholder) ----------------
+// ---------------- Chat Screen ----------------
 function ChatScreen() {
   return (
     <View style={styles.center}>
@@ -199,13 +206,19 @@ function ChatScreen() {
   );
 }
 
-// ---------------- Navigation Entry ----------------
+// ---------------- Main Entry ----------------
 export default function Index() {
   return (
     <Tab.Navigator screenOptions={({ route }) => ({
       tabBarActiveTintColor: BRAND_COLOR,
       tabBarInactiveTintColor: 'gray',
-      headerStyle: { backgroundColor: BRAND_COLOR },
+      headerStyle: { 
+        backgroundColor: BRAND_COLOR, 
+        height: 80, 
+      },
+      headerTitleStyle: {
+        fontSize: 16, 
+      },
       headerTintColor: '#fff',
       tabBarIcon: ({ color, size }) => {
         let icon: any = route.name === 'Map' ? 'map' : route.name === 'Products' ? 'cart' : 'chatbubbles';
@@ -219,6 +232,7 @@ export default function Index() {
   );
 }
 
+// ---------------- Styles ----------------
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
@@ -230,17 +244,71 @@ const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: "600" },
   price: { fontSize: 17, color: BRAND_COLOR, fontWeight: 'bold' },
   storeSubtext: { fontSize: 13, color: 'gray', marginTop: 4 },
-  filterBar: { position: 'absolute', top: 20, left: 20, right: 20, zIndex: 10, alignItems: 'center' },
-  filterBtn: { flexDirection: 'row', backgroundColor: 'white', padding: 12, borderRadius: 30, elevation: 10, shadowOpacity: 0.3, alignItems: 'center' },
-  filterBtnActive: { backgroundColor: '#e8f5e9', borderColor: 'green', borderWidth: 1 },
-  filterText: { fontWeight: '700', fontSize: 14, color: '#444' },
-  customMarker: { backgroundColor: BRAND_COLOR, padding: 6, borderRadius: 20, borderWidth: 2, borderColor: 'white', elevation: 5 },
+  
+  // Floating Pill Styles
+  pillContainer: {
+    position: 'absolute',
+    top: 15, 
+    zIndex: 10,
+    width: '100%',
+  },
+  filterPill: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 25,
+    marginRight: 10,
+    alignItems: 'center',
+    elevation: 8, // High elevation for a floating look
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  activePill: { 
+    backgroundColor: BRAND_COLOR, 
+    elevation: 2,
+  },
+  pillText: { 
+    fontWeight: '700', 
+    fontSize: 13, 
+    color: '#555' 
+  },
+  activePillText: { 
+    color: 'white' 
+  },
+
+  // Map Component Styling
+  customMarker: { 
+    backgroundColor: BRAND_COLOR, 
+    padding: 6, 
+    borderRadius: 20, 
+    borderWidth: 2, 
+    borderColor: 'white', 
+    elevation: 5 
+  },
   calloutBox: { width: 180, padding: 5 },
   calloutTitle: { fontWeight: 'bold', fontSize: 14 },
   calloutDesc: { fontSize: 11, color: 'gray', marginVertical: 4 },
   amenityRow: { flexDirection: 'row', marginTop: 5 },
-  tag: { fontSize: 10, backgroundColor: '#f0f0f0', padding: 3, borderRadius: 5, marginRight: 5 },
-  chatSub: { color: 'gray', textAlign: 'center', marginTop: 10, lineHeight: 20 }
+  tag: { 
+    fontSize: 10, 
+    backgroundColor: '#f0f0f0', 
+    padding: 3, 
+    borderRadius: 5, 
+    marginRight: 5 
+  },
+  medicaidTag: { 
+    backgroundColor: LIGHT_PURPLE, 
+    color: BRAND_COLOR 
+  },
+  chatSub: { 
+    color: 'gray', 
+    textAlign: 'center', 
+    marginTop: 10, 
+    lineHeight: 20 
+  }
 });
 
 registerRootComponent(Index);
