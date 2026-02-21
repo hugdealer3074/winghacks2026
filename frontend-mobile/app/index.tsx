@@ -9,7 +9,10 @@ import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
 
 // ---------------- Constants & Theming ----------------
-const BACKEND_URL = "http://10.136.205.166:8000"; 
+// ---------------- Constants & Theming ----------------
+const BACKEND_URL =
+  process.env.EXPO_PUBLIC_BACKEND_URL;
+
 const BRAND_COLOR = "#7B1FA2"; // Deep, trustworthy purple
 const LIGHT_PURPLE = "#F3E5F5"; // Soft lavender background
 
@@ -36,8 +39,6 @@ interface Product {
 }
 
 const Tab = createBottomTabNavigator();
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
-const BRAND_COLOR = "hotpink";
 
 // 🎨 Component: Branded Loading State
 function EmptyState({ message }: { message: string }) {
@@ -54,10 +55,23 @@ function MapScreen() {
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All'); 
-  const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
-
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [userCoords, setUserCoords] = useState<Location.LocationObjectCoords | null>(null);
   const [locationDenied, setLocationDenied] = useState(false);
+
+  useEffect(() => {
+  (async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+
+    if (status !== "granted") {
+      setLocationDenied(true);
+      return;
+    }
+
+    const current = await Location.getCurrentPositionAsync({});
+    setUserCoords(current.coords);
+  })();
+}, []);
+
   useEffect(() => {
     axios.get(`${BACKEND_URL}/clinics`)
       .then(res => {
@@ -78,6 +92,10 @@ function MapScreen() {
   });
 
   if (loading) return <EmptyState message="Finding the best care in Gainesville..." />;
+
+  if (locationDenied) {
+    return <EmptyState message="Location permission is off. Turn it on to see resources near you." />;
+  }
 
   return (
     <View style={styles.container}>
@@ -112,8 +130,8 @@ function MapScreen() {
       <MapView
         style={StyleSheet.absoluteFillObject}
         initialRegion={{
-          latitude: 29.6516,
-          longitude: -82.3248,
+          latitude: userCoords?.latitude ?? 29.6516,
+          longitude: userCoords?.longitude ?? -82.3248,
           latitudeDelta: 0.08,
           longitudeDelta: 0.08,
         }}
