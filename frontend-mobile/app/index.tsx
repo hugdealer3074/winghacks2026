@@ -52,6 +52,8 @@ function MapScreen({ route }: any) {
   const [filter, setFilter] = useState('All'); 
   const [userCoords, setUserCoords] = useState<Location.LocationObjectCoords | null>(null);
   const mapRef = useRef<MapView>(null);
+  // 🚀 THE FIX: Store references to markers to call showCallout directly
+  const markerRefs = useRef<{[key: string]: any}>({});
 
   const mapFilters = [
     { id: 'Medical', icon: 'medical', label: 'Health Clinics' },
@@ -85,6 +87,8 @@ function MapScreen({ route }: any) {
       );
       
       if (target && mapRef.current) {
+        setFilter('All'); 
+
         mapRef.current.animateToRegion({
           latitude: Number(target.lat),
           longitude: Number(target.lng),
@@ -92,11 +96,13 @@ function MapScreen({ route }: any) {
           longitudeDelta: 0.01,
         }, 1000);
 
-        // 🚀 FIX: Use target.name because that is our 'identifier'
+        // 🚀 THE FIX: Talk to the marker reference directly instead of the map
         setTimeout(() => {
-          // The (mapRef.current as any) bypasses the TS property error
-          (mapRef.current as any)?.showCallout(target.name);
-        }, 1100);
+          const marker = markerRefs.current[target.name];
+          if (marker) {
+            marker.showCallout();
+          }
+        }, 1000); 
       }
     }
   }, [route.params?.scrollToStore, clinics]);
@@ -107,11 +113,11 @@ function MapScreen({ route }: any) {
       case 'Medical': return c.type === 'medical';
       case 'Restroom': return c.family_restroom === true;
       case 'Shop': return c.type === 'shop' || (c.type === 'community' && c.description?.toLowerCase().includes('supply'));
-      case 'Medicaid': return c.medicaid === true;
+      case 'Medicaid': 
+        return c.type === 'medical' && c.medicaid === true;
       default: return true;
     }
   });
-
 
   if (loading) return <EmptyState message="Locating resources..." />;
 
@@ -144,26 +150,46 @@ function MapScreen({ route }: any) {
         showsUserLocation={true}
       >
         {displayedClinics.map((c, index) => (
-<Marker 
-    key={index} 
-    coordinate={{ latitude: Number(c.lat), longitude: Number(c.lng) }}
-    // 🚀 Add this: It allows the marker to be opened programmatically
-    identifier={c.name} 
-  >            <View style={[styles.customMarker, filter === 'Medicaid' && c.medicaid && { backgroundColor: '#2ecc71' }]}>
-               <Ionicons name={c.type === 'medical' ? "medical" : c.type === 'shop' ? "cart" : "heart"} size={16} color="white" />
+          <Marker 
+            key={`${filter}-${c._id || index}`} 
+            coordinate={{ latitude: Number(c.lat), longitude: Number(c.lng) }}
+            // 🚀 THE FIX: Register the marker in our phonebook
+ref={(el) => { markerRefs.current[c.name] = el; }}          >
+            <View style={[
+              styles.customMarker, 
+              filter === 'Restroom' && { backgroundColor: '#3498db', borderColor: '#fff' },
+              filter === 'Medicaid' && c.type === 'medical' && { backgroundColor: '#2ecc71', borderColor: '#fff' },
+              filter === 'Shop' && { backgroundColor: '#e67e22', borderColor: '#fff' }
+            ]}>
+              <Ionicons 
+                name={
+                  filter === 'Restroom' ? "woman" : 
+                  filter === 'Shop' ? "cart" : 
+                  c.type === 'medical' ? "medical" : "heart"
+                } 
+                size={16} 
+                color="white" 
+              />
             </View>
-            <Callout>
-              <View style={styles.calloutBox}>
-                <Text style={styles.calloutTitle}>{c.name}</Text>
-                <Text style={styles.calloutDesc}>{c.description}</Text>
-                <View style={styles.amenityRow}>
-                  {c.type === 'medical' && c.medicaid && <Text style={[styles.tag, styles.medicaidTag]}>🛡️ Medicaid</Text>}
-                  {c.family_restroom && <Text style={styles.tag}>🚻 Restroom</Text>}
-                </View>
-              </View>
-            </Callout>
-          </Marker>
-        ))}
+
+            <Callout tooltip={false}>
+      <View style={styles.calloutBox}>
+        <Text style={styles.calloutTitle}>{c.name}</Text>
+        <Text style={styles.calloutDesc}>{c.description || "Gainesville Community Resource"}</Text>
+        
+        {/* 🚀 THE ADDITION: Medicaid Tag */}
+        <View style={styles.amenityRow}>
+          {c.medicaid && (
+            <Text style={[styles.tag, styles.medicaidTag]}>✔ Medicaid Accepted</Text>
+          )}
+          {c.family_restroom && (
+            <Text style={styles.tag}>🚻 Family Restroom</Text>
+          )}
+        </View>
+      </View>
+    </Callout>
+  </Marker>
+))}
       </MapView>
     </View>
   );
@@ -277,9 +303,27 @@ const styles = StyleSheet.create({
   calloutBox: { width: 180, padding: 5 },
   calloutTitle: { fontWeight: 'bold' },
   calloutDesc: { fontSize: 11, color: 'gray' },
-  amenityRow: { flexDirection: 'row', marginTop: 5 },
-  tag: { fontSize: 10, backgroundColor: '#f0f0f0', padding: 3, borderRadius: 5, marginRight: 5 },
-  medicaidTag: { backgroundColor: LIGHT_PURPLE, color: BRAND_COLOR },
+  amenityRow: { 
+    flexDirection: 'row', 
+    marginTop: 5,
+    flexWrap: 'wrap' 
+  },
+  tag: { 
+    fontSize: 10, 
+    backgroundColor: '#f0f0f0', 
+    paddingHorizontal: 6, 
+    paddingVertical: 2, 
+    borderRadius: 5, 
+    marginRight: 5,
+    marginTop: 2,
+    color: '#444',
+    overflow: 'hidden'
+  },
+  medicaidTag: { 
+    backgroundColor: LIGHT_PURPLE, // That soft lavender you liked
+    color: BRAND_COLOR, 
+    fontWeight: 'bold' 
+  },
   productCard: { backgroundColor: 'white', borderRadius: 15, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', elevation: 3 },
   cardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   iconCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: LIGHT_PURPLE, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
@@ -297,8 +341,7 @@ const styles = StyleSheet.create({
   priceValueText: { color: BRAND_COLOR, fontWeight: 'bold' },
   scrollPadding: { padding: 15 },
   emptyText: { marginTop: 15, fontSize: 16, color: 'gray' },
-  chatSub: { color: 'gray', marginTop: 10, textAlign: 'center' } // 🚀 FIXED chatSub exists now!
-  ,// Add these inside the StyleSheet object:
+  chatSub: { color: 'gray', marginTop: 10, textAlign: 'center' },
   priceHeaderText: { 
     fontSize: 14, 
     color: '#666', 
