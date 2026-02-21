@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { registerRootComponent } from 'expo';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
+import * as Location from "expo-location";
 
 // 1. Types for high-quality data handling
 interface Clinic {
@@ -30,7 +31,7 @@ interface Product {
 }
 
 const Tab = createBottomTabNavigator();
-const BACKEND_URL = "http://10.136.205.166:8000"; 
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const BRAND_COLOR = "hotpink";
 
 // 🎨 Component: Branded Loading State for UI/UX Track
@@ -49,10 +50,19 @@ function MapScreen() {
   const [filterMedicaid, setFilterMedicaid] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [locationDenied, setLocationDenied] = useState(false);
   useEffect(() => {
     axios.get(`${BACKEND_URL}/clinics`)
-      .then(res => { setClinics(res.data); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then(res => {
+        console.log("CLINICS RECEIVED:", res.data);
+        setClinics(res.data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.log("CLINICS ERROR:", error);
+        setLoading(false);
+      });
   }, []);
 
   const displayedClinics = filterMedicaid ? clinics.filter(c => c.medicaid) : clinics;
