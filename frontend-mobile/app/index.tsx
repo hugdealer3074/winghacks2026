@@ -33,7 +33,7 @@ interface Product {
   price: number;
   store: string;
   brand: string;
-  category: string; // 👈 Added category to interface
+  category: string; 
 }
 
 const Tab = createBottomTabNavigator();
@@ -56,14 +56,15 @@ function MapScreen() {
 
   useEffect(() => {
     (async () => {
+      // 1. Get Permission
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         let loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
         setUserLocation(loc.coords);
       }
-
       try {
         const res = await axios.get(`${BACKEND_URL}/clinics`);
+        console.log("CLINICS RECEIVED:", res.data);
         setClinics(res.data);
       } catch (err) {
         console.error("CLINICS ERROR:", err);
@@ -148,7 +149,7 @@ function MapScreen() {
 // ---------------- Products Screen ----------------
 function ProductsScreen() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [maxPrice, setMaxPrice] = useState(40); // Increased default range
+  const [maxPrice, setMaxPrice] = useState(40); 
   const [activeTab, setActiveTab] = useState('All');
   const [loading, setLoading] = useState(true);
 
@@ -163,7 +164,6 @@ function ProductsScreen() {
       .catch(() => setLoading(false));
   }, []);
 
-  // Combined logic for Category Filter, Price Filter, and Price Sorting
   const filteredAndSorted = products
     .filter(p => (activeTab === 'All' || p.category === activeTab))
     .filter(p => p.price <= maxPrice)
@@ -173,7 +173,6 @@ function ProductsScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 🚀 Category Filter Bar */}
       <View style={styles.categoryBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 15 }}>
           {categories.map(cat => (
@@ -278,7 +277,6 @@ export default function Index() {
   );
 }
 
-// ---------------- Styles ----------------
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
@@ -341,27 +339,9 @@ const styles = StyleSheet.create({
   savingsLabel: { color: 'white', fontSize: 8, fontWeight: 'bold' },
   noResults: { textAlign: 'center', marginTop: 50, color: 'gray' },
   chatSub: { color: 'gray', textAlign: 'center', marginTop: 10, lineHeight: 20 },
-  
-  // 🚀 New Category Styles
-  categoryBar: { 
-    backgroundColor: '#fff', 
-    paddingVertical: 10, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#eee' 
-  },
-  catTab: { 
-    paddingHorizontal: 16, 
-    paddingVertical: 8, 
-    marginRight: 8, 
-    borderRadius: 20, 
-    backgroundColor: '#eee',
-    borderWidth: 1,
-    borderColor: '#ddd'
-  },
-  activeCatTab: { 
-    backgroundColor: BRAND_COLOR,
-    borderColor: BRAND_COLOR
-  },
+  categoryBar: { backgroundColor: '#fff', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  catTab: { paddingHorizontal: 16, paddingVertical: 8, marginRight: 8, borderRadius: 20, backgroundColor: '#eee', borderWidth: 1, borderColor: '#ddd' },
+  activeCatTab: { backgroundColor: BRAND_COLOR, borderColor: BRAND_COLOR },
   catTabText: { color: '#666', fontWeight: '600', fontSize: 12 },
   activeCatTabText: { color: 'white' },
 });
