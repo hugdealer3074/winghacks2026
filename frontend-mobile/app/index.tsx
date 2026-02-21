@@ -9,8 +9,9 @@ import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
 
 // ---------------- Constants & Theming ----------------
-const BACKEND_URL = "http://10.136.205.166:8000"; 
-const BRAND_COLOR = "#7B1FA2"; 
+// Using the environment variable if available, otherwise your local IP
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || "http://10.136.205.166:8000"; 
+const BRAND_COLOR = "#7B1FA2"; // Stick with the purple!
 const LIGHT_PURPLE = "#F3E5F5"; 
 
 // ---------------- Types ----------------
@@ -55,16 +56,20 @@ function MapScreen() {
 
   useEffect(() => {
     (async () => {
+      // 1. Get Permission
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         let loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
         setUserLocation(loc.coords);
       }
+
+      // 2. Fetch Data
       try {
         const res = await axios.get(`${BACKEND_URL}/clinics`);
+        console.log("CLINICS RECEIVED:", res.data);
         setClinics(res.data);
       } catch (err) {
-        console.error("Error fetching clinics:", err);
+        console.error("CLINICS ERROR:", err);
       } finally {
         setLoading(false);
       }
