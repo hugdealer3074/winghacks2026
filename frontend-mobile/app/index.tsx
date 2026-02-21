@@ -9,7 +9,7 @@ import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
 
 // ---------------- Constants & Theming ----------------
-const BACKEND_URL = "http://10.136.205.166:8000"; 
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || "http://10.136.205.166:8000"; 
 const BRAND_COLOR = "#7B1FA2"; 
 const LIGHT_PURPLE = "#F3E5F5"; 
 
@@ -60,11 +60,12 @@ function MapScreen() {
         let loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
         setUserLocation(loc.coords);
       }
+
       try {
         const res = await axios.get(`${BACKEND_URL}/clinics`);
         setClinics(res.data);
       } catch (err) {
-        console.error("Error fetching clinics:", err);
+        console.error("CLINICS ERROR:", err);
       } finally {
         setLoading(false);
       }
@@ -183,13 +184,13 @@ function ProductsScreen() {
           filtered.map((p, index) => (
             <View key={`product-${p._id || index}`} style={styles.productCard}>
               <View style={styles.cardLeft}>
-                <View style={styles.iconCircle}>
+                <div style={styles.iconCircle}>
                   <Ionicons 
                     name={p.name.toLowerCase().includes('vitamin') ? "medkit" : "nutrition"} 
                     size={20} 
                     color={BRAND_COLOR} 
                   />
-                </View>
+                </div>
                 <View>
                   <Text style={styles.productTitle}>{p.name}</Text>
                   <Text style={styles.brandText}>{p.brand}</Text>
@@ -203,11 +204,11 @@ function ProductsScreen() {
                 <Text style={[styles.productPrice, p.price === 0 && styles.freeText]}>
                   {p.price === 0 ? "FREE" : `$${p.price.toFixed(2)}`}
                 </Text>
-                {p.price === 0 ? (
+                {p.price === 0 && (
                   <View style={styles.savingsTag}>
                     <Text style={styles.savingsLabel}>COMMUNITY</Text>
                   </View>
-                ) : null}
+                )}
               </View>
             </View>
           ))
