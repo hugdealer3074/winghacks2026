@@ -1,0 +1,21 @@
+# Node
+node_modules/
+**/node_modules/
+
+# Environment files
+.env
+**/.env
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# OS junk
+.DS_Store
+Thumbs.db

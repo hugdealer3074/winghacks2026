@@ -10,8 +10,7 @@ import * as Location from 'expo-location';
 
 // ---------------- Constants & Theming ----------------
 // ---------------- Constants & Theming ----------------
-const BACKEND_URL =
-  process.env.EXPO_PUBLIC_BACKEND_URL;
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 const BRAND_COLOR = "#7B1FA2"; // Deep, trustworthy purple
 const LIGHT_PURPLE = "#F3E5F5"; // Soft lavender background
