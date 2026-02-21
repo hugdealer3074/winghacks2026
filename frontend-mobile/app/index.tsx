@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { registerRootComponent } from 'expo';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
+import * as Location from 'expo-location';
 
 // 1. Types for high-quality data handling
 interface Clinic {
@@ -48,11 +49,34 @@ function MapScreen() {
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [filterMedicaid, setFilterMedicaid] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Add state to store user coordinates
+  const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
 
   useEffect(() => {
-    axios.get(`${BACKEND_URL}/clinics`)
-      .then(res => { setClinics(res.data); setLoading(false); })
-      .catch(() => setLoading(false));
+    (async () => {
+      // 1. Request foreground permissions
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.error('Permission to access location was denied');
+        return;
+      }
+
+      // 2. Get initial high-accuracy position
+      let loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      setUserLocation(loc.coords);
+
+      // 3. Fetch clinic data from your backend
+      try {
+        const res = await axios.get(`${BACKEND_URL}/clinics`);
+        setClinics(res.data);
+      } catch (err) {
+        console.error("Error fetching clinics:", err);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const displayedClinics = filterMedicaid ? clinics.filter(c => c.medicaid) : clinics;
@@ -61,7 +85,7 @@ function MapScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 🛠️ Top Filter Bar */}
+      {/* Medicaid Toggle Filter Bar */}
       <View style={styles.filterBar}>
         <TouchableOpacity 
           onPress={() => setFilterMedicaid(!filterMedicaid)}
@@ -74,14 +98,28 @@ function MapScreen() {
 
       <MapView
         style={StyleSheet.absoluteFillObject}
-        initialRegion={{ latitude: 29.6516, longitude: -82.3248, latitudeDelta: 0.07, longitudeDelta: 0.07 }}
+        initialRegion={{
+          latitude: 29.6516,
+          longitude: -82.3248,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        }}
+        // 🔵 Shows the user's "Blue Dot"
+        showsUserLocation={true} 
+        // 🎯 Focuses the map on the user (iOS/Apple Maps only)
+        followsUserLocation={true} 
+        // 🔘 Adds the native button to snap back to your position
+        showsMyLocationButton={true} 
+        // 🧭 Displays the orientation compass
+        showsCompass={true} 
+        // ⏳ Displays a loading spinner while map tiles download
+        loadingEnabled={true} 
       >
         {displayedClinics.map((c) => (
           <Marker
             key={`clinic-${c.id}`}
             coordinate={{ latitude: Number(c.lat), longitude: Number(c.lng) }}
           >
-            {/* 🏥 UI/UX: Custom Marker per Type */}
             <View style={[styles.customMarker, c.medicaid && { borderColor: 'green' }]}>
               <Ionicons 
                 name={c.type === 'medical' ? "medical" : c.type === 'amenity' ? "woman" : "heart"} 
