@@ -33,6 +33,7 @@ interface Product {
   price: number;
   store: string;
   brand: string;
+  category: string; // 👈 Added category to interface
 }
 
 const Tab = createBottomTabNavigator();
@@ -147,21 +148,46 @@ function MapScreen() {
 // ---------------- Products Screen ----------------
 function ProductsScreen() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [maxPrice, setMaxPrice] = useState(25);
+  const [maxPrice, setMaxPrice] = useState(40); // Increased default range
+  const [activeTab, setActiveTab] = useState('All');
   const [loading, setLoading] = useState(true);
+
+  const categories = ['All', 'Health', 'Feeding', 'Diapering', 'Clothing', 'Gear'];
 
   useEffect(() => {
     axios.get(`${BACKEND_URL}/products`)
-      .then(res => { setProducts(res.data); setLoading(false); })
+      .then(res => { 
+        setProducts(res.data); 
+        setLoading(false); 
+      })
       .catch(() => setLoading(false));
   }, []);
 
-  const filtered = products.filter(p => p.price <= maxPrice);
+  // Combined logic for Category Filter, Price Filter, and Price Sorting
+  const filteredAndSorted = products
+    .filter(p => (activeTab === 'All' || p.category === activeTab))
+    .filter(p => p.price <= maxPrice)
+    .sort((a, b) => a.price - b.price);
 
   if (loading) return <EmptyState message="Scouting Gainesville for deals..." />;
 
   return (
     <View style={styles.container}>
+      {/* 🚀 Category Filter Bar */}
+      <View style={styles.categoryBar}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 15 }}>
+          {categories.map(cat => (
+            <TouchableOpacity 
+              key={cat} 
+              onPress={() => setActiveTab(cat)}
+              style={[styles.catTab, activeTab === cat && styles.activeCatTab]}
+            >
+              <Text style={[styles.catTabText, activeTab === cat && styles.activeCatTabText]}>{cat}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
       <View style={styles.priceFilterContainer}>
         <View style={styles.priceHeaderRow}>
            <Text style={styles.priceHeaderText}>Budget Friendly</Text>
@@ -180,17 +206,17 @@ function ProductsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollPadding}>
-        {filtered.length > 0 ? (
-          filtered.map((p, index) => (
+        {filteredAndSorted.length > 0 ? (
+          filteredAndSorted.map((p, index) => (
             <View key={`product-${p._id || index}`} style={styles.productCard}>
               <View style={styles.cardLeft}>
-                <div style={styles.iconCircle}>
+                <View style={styles.iconCircle}>
                   <Ionicons 
-                    name={p.name.toLowerCase().includes('vitamin') ? "medkit" : "nutrition"} 
+                    name={p.category === 'Health' ? "medkit" : "nutrition"} 
                     size={20} 
                     color={BRAND_COLOR} 
                   />
-                </div>
+                </View>
                 <View>
                   <Text style={styles.productTitle}>{p.name}</Text>
                   <Text style={styles.brandText}>{p.brand}</Text>
@@ -245,13 +271,14 @@ export default function Index() {
         return <Ionicons name={icon} size={size} color={color} />;
       },
     })}>
-      <Tab.Screen name="Map" component={MapScreen} options={{ title: 'Care Resource Map' }} />
+      <Tab.Screen name="Map" component={MapScreen} options={{ title: 'Maternity Care Resource Map' }} />
       <Tab.Screen name="Products" component={ProductsScreen} options={{ title: 'Essentials' }} />
       <Tab.Screen name="Chat" component={ChatScreen} options={{ title: 'AI Support' }} />
     </Tab.Navigator>
   );
 }
 
+// ---------------- Styles ----------------
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
@@ -313,7 +340,30 @@ const styles = StyleSheet.create({
   savingsTag: { backgroundColor: BRAND_COLOR, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4 },
   savingsLabel: { color: 'white', fontSize: 8, fontWeight: 'bold' },
   noResults: { textAlign: 'center', marginTop: 50, color: 'gray' },
-  chatSub: { color: 'gray', textAlign: 'center', marginTop: 10, lineHeight: 20 }
+  chatSub: { color: 'gray', textAlign: 'center', marginTop: 10, lineHeight: 20 },
+  
+  // 🚀 New Category Styles
+  categoryBar: { 
+    backgroundColor: '#fff', 
+    paddingVertical: 10, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#eee' 
+  },
+  catTab: { 
+    paddingHorizontal: 16, 
+    paddingVertical: 8, 
+    marginRight: 8, 
+    borderRadius: 20, 
+    backgroundColor: '#eee',
+    borderWidth: 1,
+    borderColor: '#ddd'
+  },
+  activeCatTab: { 
+    backgroundColor: BRAND_COLOR,
+    borderColor: BRAND_COLOR
+  },
+  catTabText: { color: '#666', fontWeight: '600', fontSize: 12 },
+  activeCatTabText: { color: 'white' },
 });
 
 registerRootComponent(Index);
