@@ -1,30 +1,41 @@
 from fastapi import FastAPI
 from motor.motor_asyncio import AsyncIOMotorClient
-from typing import List
-import os
+from typing import List, Optional
+from pydantic import BaseModel, Field
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# 🔗 Use the connection string from your Atlas 'Connect' panel
-# Replace <db_password> with your actual password!
-MONGO_URL = "mongodb+srv://ellynr216_db_user:MongoDB@winghacks2026.3f8cee8.mongodb.net/"
-client = AsyncIOMotorClient(MONGO_URL)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+client = AsyncIOMotorClient("mongodb+srv://ellynr216_db_user:MongoDB@winghacks2026.3f8cee8.mongodb.net/") # OR Atlas URI
 db = client.gatorfamily_db
 
-@app.get("/clinics")
-async def get_clinics():
-    clinics = []
-    # 🔎 Fetch all clinics from the 'clinics' collection
-    async for clinic in db.clinics.find():
-        clinic["_id"] = str(clinic["_id"])  # Convert MongoDB ID to string for JSON
-        clinics.append(clinic)
-    return clinics
+class Clinic(BaseModel):
+    name: str
+    lat: float
+    lng: float
+    type: str
+    medicaid: bool
+    family_restroom: bool
+    description: str
 
-@app.get("/products")
+class Product(BaseModel):
+    name: str
+    price: float
+    store: str
+    brand: str
+    category: str # 👈 Added category
+
+@app.get("/clinics", response_model=List[Clinic])
+async def get_clinics():
+    return await db.clinics.find().to_list(100)
+
+@app.get("/products", response_model=List[Product])
 async def get_products():
-    products = []
-    # 🛒 Fetch affordable essentials like formula and vitamins
-    async for product in db.products.find():
-        product["_id"] = str(product["_id"])
-        products.append(product)
-    return products
+    return await db.products.find().to_list(100)
