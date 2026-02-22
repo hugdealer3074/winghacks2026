@@ -8,11 +8,18 @@ import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
 
+// theme tokens
+import { SafeAreaView } from "react-native-safe-area-context";
+import { COLORS, SPACING, RADIUS, SHADOW, TYPE } from "../theme";
+
+// Font import
+import { useFonts, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold } from "@expo-google-fonts/plus-jakarta-sans";
+
 // ---------------- Constants & Theming ----------------
 // ---------------- Constants & Theming ----------------
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
-const BRAND_COLOR = "#7B1FA2"; // Deep, trustworthy purple
+const BRAND_COLOR = COLORS.primary;
 const LIGHT_PURPLE = "#F3E5F5"; // Soft lavender background
 
 // ---------------- Types ----------------
@@ -46,6 +53,27 @@ function EmptyState({ message }: { message: string }) {
       <ActivityIndicator size="large" color={BRAND_COLOR} />
       <Text style={styles.emptyText}>{message}</Text>
     </View>
+  );
+}
+
+// Loading Screen Component
+function LoadingScreen({ subtitle }: { subtitle: string }) {
+  return (
+    <SafeAreaView style={[styles.loadingWrap]}>
+      <View style={styles.loadingTop}>
+        <View style={styles.logoBubble}>
+          <Text style={styles.logoLetter}>A</Text>
+        </View>
+
+        <Text style={styles.loadingTitle}>Welcome</Text>
+        <Text style={styles.loadingSubtitle}>{subtitle}</Text>
+      </View>
+
+      <View style={styles.loadingBottom}>
+        <ActivityIndicator size="large" color={COLORS.primaryHard} />
+        <Text style={styles.loadingHint}>Getting things ready…</Text>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -267,39 +295,111 @@ function ProductsScreen() {
 }
 
 // ---------------- Chat Screen ----------------
+const APP_PERSONA = {
+  name: "GatorFamily",
+  tone: "Warm, calm, playful, never judgmental. Clear and practical like Uber; gentle like Flo.",
+  botName: "Ruma",
+  botRole:
+    "A friendly guide who helps users find care, understand eligibility, and find affordable essentials. Always encourages seeking professional help for emergencies.",
+};
+
 function ChatScreen() {
   return (
-    <View style={styles.center}>
-      <Ionicons name="chatbubbles-outline" size={80} color={BRAND_COLOR} />
-      <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#333' }}>GatorFamily AI</Text>
-      <Text style={styles.chatSub}>Powered by Gemini. Ask about clinic eligibility or local baby supplies.</Text>
-    </View>
+    <ScrollView style={{ flex: 1, backgroundColor: COLORS.background }} contentContainerStyle={{ padding: SPACING.xl }}>
+      <View style={styles.heroCard}>
+        <View style={styles.heroRow}>
+          <View style={styles.avatar}>
+            <Ionicons name="sparkles" size={18} color={COLORS.primaryHard} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.heroTitle}>{APP_PERSONA.botName}</Text>
+            <Text style={styles.heroSubtitle}>Your calm, practical support buddy</Text>
+          </View>
+        </View>
+
+        <Text style={styles.heroBody}>
+          Ask me about nearby clinics, what to bring to appointments, eligibility questions, or affordable baby essentials.
+        </Text>
+
+        <View style={styles.chipRow}>
+          <View style={styles.chip}><Text style={styles.chipText}>Find care near me</Text></View>
+          <View style={styles.chip}><Text style={styles.chipText}>What can I expect?</Text></View>
+          <View style={styles.chip}><Text style={styles.chipText}>Cheaper essentials</Text></View>
+        </View>
+      </View>
+
+      <View style={styles.noticeCard}>
+        <Text style={styles.noticeTitle}>Quick note</Text>
+        <Text style={styles.noticeText}>
+          If you think you’re having a medical emergency, call local emergency services right away.
+        </Text>
+      </View>
+    </ScrollView>
   );
 }
 
 // ---------------- Main Entry ----------------
 export default function Index() {
+  const [isReady, setIsReady] = useState(false);
+
+  // Font
+  const [fontsLoaded] = useFonts({
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+});
+
+if (!fontsLoaded) {
+  return <LoadingScreen subtitle="Loading fonts…" />;
+}
+
+  useEffect(() => {
+    // Simple “boot” phase. Later you can add:
+    // - font loading
+    // - API warmup
+    // - onboarding check
+    const t = setTimeout(() => setIsReady(true), 700);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (!isReady) {
+    return <LoadingScreen subtitle="Support that feels calm, practical, and human." />;
+  }
+
   return (
-    <Tab.Navigator screenOptions={({ route }) => ({
-      tabBarActiveTintColor: BRAND_COLOR,
-      tabBarInactiveTintColor: 'gray',
-      headerStyle: { backgroundColor: BRAND_COLOR, height: 80 },
-      headerTitleStyle: { fontSize: 16 },
-      headerTintColor: '#fff',
-      tabBarIcon: ({ color, size }) => {
-        let icon: any = route.name === 'Map' ? 'map' : route.name === 'Products' ? 'cart' : 'chatbubbles';
-        return <Ionicons name={icon} size={size} color={color} />;
-      },
-    })}>
-      <Tab.Screen name="Map" component={MapScreen} options={{ title: 'Maternity Care Resource Map' }} />
-      <Tab.Screen name="Products" component={ProductsScreen} options={{ title: 'Essentials' }} />
-      <Tab.Screen name="Chat" component={ChatScreen} options={{ title: 'AI Support' }} />
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarActiveTintColor: COLORS.primaryHard,
+        tabBarInactiveTintColor: "#9B9B9B",
+        headerStyle: { backgroundColor: COLORS.background, height: 92 },
+        headerTitleStyle: { fontSize: 16, fontWeight: "700" },
+        headerTintColor: COLORS.text,
+        tabBarStyle: {
+          borderTopColor: COLORS.border,
+          backgroundColor: COLORS.background,
+          paddingTop: 6,
+        },
+        tabBarIcon: ({ color, size }) => {
+          let icon: any =
+            route.name === "Map"
+              ? "map"
+              : route.name === "Products"
+              ? "cart"
+              : "chatbubbles";
+          return <Ionicons name={icon} size={size} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen name="Map" component={MapScreen} options={{ title: "Care Nearby" }} />
+      <Tab.Screen name="Products" component={ProductsScreen} options={{ title: "Essentials" }} />
+      <Tab.Screen name="Chat" component={ChatScreen} options={{ title: "Support" }} />
     </Tab.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: COLORS.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
   emptyText: { marginTop: 15, fontSize: 16, color: 'gray', textAlign: 'center' },
   header: { fontSize: 22, fontWeight: 'bold', marginBottom: 10 },
@@ -365,6 +465,70 @@ const styles = StyleSheet.create({
   activeCatTab: { backgroundColor: BRAND_COLOR, borderColor: BRAND_COLOR },
   catTabText: { color: '#666', fontWeight: '600', fontSize: 12 },
   activeCatTabText: { color: 'white' },
+
+    loadingWrap: { flex: 1, backgroundColor: COLORS.background, padding: SPACING.xl, justifyContent: "space-between" },
+  loadingTop: { paddingTop: SPACING.xl },
+  logoBubble: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: COLORS.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOW.card,
+  },
+  logoLetter: { color: COLORS.primaryHard, fontWeight: "900", fontSize: 22 },
+  loadingTitle: { marginTop: SPACING.lg, color: COLORS.text, ...TYPE.h1 },
+  loadingSubtitle: { marginTop: SPACING.sm, color: COLORS.textSecondary, ...TYPE.body },
+  loadingBottom: { alignItems: "flex-start", gap: SPACING.sm, paddingBottom: SPACING.xl },
+  loadingHint: { color: COLORS.textSecondary, ...TYPE.bodySmall },
+
+  heroCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOW.card,
+  },
+  heroRow: { flexDirection: "row", alignItems: "center", gap: SPACING.md },
+  avatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    backgroundColor: COLORS.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  heroTitle: { color: COLORS.text, ...TYPE.h2 },
+  heroSubtitle: { marginTop: 2, color: COLORS.textSecondary, ...TYPE.bodySmall },
+  heroBody: { marginTop: SPACING.lg, color: COLORS.text, ...TYPE.body, lineHeight: 22 },
+
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm, marginTop: SPACING.lg },
+  chip: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  chipText: { color: COLORS.text, ...TYPE.caption },
+
+  noticeCard: {
+    marginTop: SPACING.lg,
+    backgroundColor: COLORS.primarySoft,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  noticeTitle: { color: COLORS.primaryHard, ...TYPE.h3 },
+  noticeText: { marginTop: SPACING.sm, color: COLORS.text, ...TYPE.bodySmall, lineHeight: 20 },
 });
 
 registerRootComponent(Index);
