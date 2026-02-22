@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -8,25 +8,51 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../../contexts/AuthContext';
-import { timeAgo } from '../../utils/timeAgo';
+  ActivityIndicator,
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+
+import { useAuth } from "../../contexts/AuthContext";
+import { timeAgo } from "../../utils/timeAgo";
+
+import { BackgroundBlobs } from "../../components/BackgroundBlobs";
+
+const COLORS = {
+  lavender: "#A083F9",
+  lavenderDeep: "#5A1FC1",
+  lavenderSoft: "#DED2FF",
+  sage: "#A7C7A1",
+  background: "#FFFBF9",
+  text: "#222222",
+  textMuted: "rgba(34,34,34,0.55)",
+  border: "rgba(255,255,255,0.55)",
+};
+
+function formatCategory(cat?: string) {
+  const s = (cat || "general").toString().trim();
+  if (!s) return "General";
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 export default function PostDetailScreen() {
   const { postId } = useLocalSearchParams<{ postId: string }>();
   const router = useRouter();
   const { user } = useAuth();
+
   const [post, setPost] = useState<any>(null);
-  const [replyText, setReplyText] = useState('');
+  const [replyText, setReplyText] = useState("");
 
   useEffect(() => {
     loadPost();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId]);
 
   const loadPost = async () => {
-    const savedPosts = await AsyncStorage.getItem('forumPosts');
+    const savedPosts = await AsyncStorage.getItem("forumPosts");
     if (savedPosts) {
       const posts = JSON.parse(savedPosts);
       const foundPost = posts.find((p: any) => p.id === postId);
@@ -46,240 +72,305 @@ export default function PostDetailScreen() {
 
     const updatedPost = {
       ...post,
-      replies: [...post.replies, newReply],
+      replies: [...(post.replies || []), newReply],
     };
 
-    const savedPosts = await AsyncStorage.getItem('forumPosts');
+    const savedPosts = await AsyncStorage.getItem("forumPosts");
     if (savedPosts) {
       const posts = JSON.parse(savedPosts);
-      const updatedPosts = posts.map((p: any) =>
-        p.id === postId ? updatedPost : p
-      );
-      await AsyncStorage.setItem('forumPosts', JSON.stringify(updatedPosts));
+      const updatedPosts = posts.map((p: any) => (p.id === postId ? updatedPost : p));
+      await AsyncStorage.setItem("forumPosts", JSON.stringify(updatedPosts));
       setPost(updatedPost);
-      setReplyText('');
+      setReplyText("");
     }
   };
+
+  const replyCountLabel = useMemo(() => {
+    const n = post?.replies?.length ?? 0;
+    return `${n} ${n === 1 ? "Reply" : "Replies"}`;
+  }, [post?.replies?.length]);
 
   if (!post) {
     return (
       <View style={styles.loading}>
-        <Text>Loading...</Text>
+        <ActivityIndicator size="large" color={COLORS.lavenderDeep} />
+        <Text style={styles.loadingText}>Loading post…</Text>
       </View>
     );
   }
 
-  const getCategoryColor = (category: string) => {
-    const colors: Record<string, string> = {
-      pregnancy: '#FF6B9D',
-      newborn: '#4ECDC4',
-      parenting: '#95E1D3',
-      health: '#F38181',
-      general: '#AA96DA',
-    };
-    return colors[category] || '#999';
-  };
+  const categoryLabel = formatCategory(post.category);
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.screen}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
     >
-      <ScrollView style={styles.content}>
-        {/* Original Post */}
-        <View style={styles.postCard}>
-          <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(post.category) }]}>
-            <Text style={styles.categoryText}>{post.category}</Text>
-          </View>
-          
-          <Text style={styles.postTitle}>{post.title}</Text>
-          <Text style={styles.postContent}>{post.content}</Text>
-          
-          <View style={styles.postMeta}>
-            <Text style={styles.author}>{post.authorUsername}</Text>
-            <Text style={styles.time}>{timeAgo(post.createdAt)}</Text>
+      <View style={styles.screen}>
+        <BackgroundBlobs />
+
+        {/* ✅ Liquid-glass header (with back arrow) */}
+        <View style={styles.headerWrap}>
+          <BlurView intensity={22} tint="light" style={StyleSheet.absoluteFill} />
+          <LinearGradient
+            colors={[
+              "rgba(160,131,249,0.18)",
+              "rgba(222,210,255,0.16)",
+              "rgba(167,199,161,0.10)",
+              "rgba(255,251,249,0.40)",
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => router.back()}
+              style={styles.backButton}
+            >
+              <Ionicons name="chevron-back" size={18} color={COLORS.text} />
+            </TouchableOpacity>
+
+            <View style={{ flex: 1 }} />
+
+            <View style={styles.categoryChip}>
+              <Text style={styles.categoryChipText}>{categoryLabel}</Text>
+            </View>
           </View>
 
-          <View style={styles.statsRow}>
-            <TouchableOpacity style={styles.upvoteButton}>
-              <Text style={styles.upvoteText}>⬆️ {post.upvotes} Upvotes</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.headerTitle}>Post</Text>
+          <Text style={styles.headerSubtitle}>
+            {post.authorUsername} • {timeAgo(post.createdAt)}
+          </Text>
         </View>
 
-        {/* Replies */}
-        <View style={styles.repliesSection}>
-          <Text style={styles.repliesTitle}>{post.replies.length} Replies</Text>
-          
-          {post.replies.map((reply: any) => (
-            <View key={reply.id} style={styles.replyCard}>
-              <Text style={styles.replyContent}>{reply.content}</Text>
-              <View style={styles.replyMeta}>
-                <Text style={styles.replyAuthor}>{reply.authorUsername}</Text>
-                <Text style={styles.replyTime}>{timeAgo(reply.createdAt)}</Text>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Post Card */}
+          <View style={styles.card}>
+            <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill} />
+            <LinearGradient
+              colors={[
+                "rgba(255,255,255,0.72)",
+                "rgba(222,210,255,0.18)",
+                "rgba(167,199,161,0.10)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+
+            <Text style={styles.postTitle}>{post.title}</Text>
+            <Text style={styles.postBody}>{post.content}</Text>
+
+            <View style={styles.metaRow}>
+              <View style={styles.metaPill}>
+                <Text style={styles.metaText}>⬆️ {post.upvotes}</Text>
+              </View>
+              <View style={styles.metaPill}>
+                <Text style={styles.metaText}>💬 {post.replies?.length ?? 0}</Text>
               </View>
             </View>
-          ))}
-        </View>
-      </ScrollView>
+          </View>
 
-      {/* Reply Input */}
-      {user && (
-        <View style={styles.replyInputContainer}>
-          <TextInput
-            style={styles.replyInput}
-            placeholder="Write a reply..."
-            value={replyText}
-            onChangeText={setReplyText}
-            multiline
-          />
-          <TouchableOpacity
-            style={styles.sendButton}
-            onPress={handleAddReply}
-            disabled={!replyText.trim()}
-          >
-            <Text style={styles.sendButtonText}>Send</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+          {/* Replies */}
+          <View style={styles.repliesWrap}>
+            <Text style={styles.repliesTitle}>{replyCountLabel}</Text>
+
+            {(post.replies || []).map((reply: any) => (
+              <View key={reply.id} style={styles.replyCard}>
+                <BlurView intensity={14} tint="light" style={StyleSheet.absoluteFill} />
+                <LinearGradient
+                  colors={["rgba(255,255,255,0.62)", "rgba(222,210,255,0.12)"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+
+                <Text style={styles.replyContent}>{reply.content}</Text>
+
+                <View style={styles.replyMeta}>
+                  <Text style={styles.replyAuthor}>{reply.authorUsername}</Text>
+                  <Text style={styles.replyTime}>{timeAgo(reply.createdAt)}</Text>
+                </View>
+              </View>
+            ))}
+
+            {(post.replies || []).length === 0 && (
+              <Text style={styles.emptyReply}>
+                No replies yet. Be the first to leave something kind 💜
+              </Text>
+            )}
+          </View>
+
+          {/* Spacer so last reply isn't hidden behind dock */}
+          <View style={{ height: 140 }} />
+        </ScrollView>
+
+        {/* Reply Dock */}
+        {user && (
+          <View style={styles.replyDock}>
+            <BlurView intensity={24} tint="light" style={StyleSheet.absoluteFill} />
+            <LinearGradient
+              colors={[
+                "rgba(255,255,255,0.70)",
+                "rgba(222,210,255,0.14)",
+                "rgba(167,199,161,0.10)",
+              ]}
+              style={StyleSheet.absoluteFill}
+            />
+
+            <TextInput
+              style={styles.replyInput}
+              placeholder="Write a reply..."
+              placeholderTextColor={COLORS.textMuted}
+              value={replyText}
+              onChangeText={setReplyText}
+              multiline
+            />
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[styles.sendButton, !replyText.trim() && styles.sendDisabled]}
+              onPress={handleAddReply}
+              disabled={!replyText.trim()}
+            >
+              <LinearGradient
+                colors={["rgba(90,31,193,0.92)", "rgba(160,131,249,0.86)"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <Text style={styles.sendText}>Send</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
+  screen: { flex: 1, backgroundColor: COLORS.background },
+
+  loading: { flex: 1, alignItems: "center", justifyContent: "center" },
+  loadingText: { marginTop: 10, color: COLORS.textMuted, fontWeight: "700" },
+
+  headerWrap: {
+    paddingTop: Platform.OS === "ios" ? 60 : 42,
+    paddingBottom: 14,
+    paddingHorizontal: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.45)",
   },
-  loading: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  headerTopRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1,
+    borderColor: "rgba(34,34,34,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  content: {
-    flex: 1,
-  },
-  postCard: {
-    backgroundColor: 'white',
-    padding: 20,
-    marginBottom: 8,
-  },
-  categoryBadge: {
-    alignSelf: 'flex-start',
+  categoryChip: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginBottom: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: "rgba(222,210,255,0.60)",
+    borderWidth: 1,
+    borderColor: "rgba(160,131,249,0.28)",
   },
-  categoryText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
+  categoryChipText: { fontSize: 12, fontWeight: "900", color: COLORS.lavenderDeep },
+
+  headerTitle: { fontSize: 26, fontWeight: "900", color: COLORS.text },
+  headerSubtitle: { marginTop: 6, fontSize: 14, fontWeight: "700", color: COLORS.textMuted },
+
+  content: { paddingTop: 18, paddingHorizontal: 24, paddingBottom: 20 },
+
+  card: {
+    borderRadius: 30,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
   },
-  postTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  postContent: {
-    fontSize: 16,
-    color: '#666',
-    lineHeight: 24,
-    marginBottom: 16,
-  },
-  postMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  author: {
-    fontSize: 14,
-    color: '#8B5CF6',
-    fontWeight: '600',
-  },
-  time: {
-    fontSize: 14,
-    color: '#999',
-  },
-  statsRow: {
-    marginTop: 12,
-  },
-  upvoteButton: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 16,
+  postTitle: { fontSize: 20, fontWeight: "900", color: COLORS.text },
+  postBody: { marginTop: 14, fontSize: 16, lineHeight: 22, color: COLORS.textMuted },
+
+  metaRow: { flexDirection: "row", gap: 10, marginTop: 18 },
+  metaPill: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.60)",
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(34,34,34,0.06)",
   },
-  upvoteText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  repliesSection: {
-    backgroundColor: 'white',
-    padding: 20,
-  },
-  repliesTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
+  metaText: { fontSize: 14, fontWeight: "800", color: COLORS.textMuted },
+
+  repliesWrap: { marginTop: 24 },
+  repliesTitle: { fontSize: 16, fontWeight: "900", color: COLORS.text, marginBottom: 14 },
+
   replyCard: {
-    backgroundColor: '#f9f9f9',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.55)",
+    padding: 18,
+    marginBottom: 14,
   },
-  replyContent: {
-    fontSize: 15,
-    color: '#333',
-    lineHeight: 22,
-    marginBottom: 8,
-  },
-  replyMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  replyAuthor: {
-    fontSize: 13,
-    color: '#8B5CF6',
-    fontWeight: '600',
-  },
-  replyTime: {
-    fontSize: 13,
-    color: '#999',
-  },
-  replyInputContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
-    alignItems: 'center',
+  replyContent: { fontSize: 15, color: COLORS.text, lineHeight: 21, marginBottom: 10 },
+  replyMeta: { flexDirection: "row", justifyContent: "space-between" },
+  replyAuthor: { fontSize: 13, fontWeight: "900", color: COLORS.lavenderDeep },
+  replyTime: { fontSize: 13, color: COLORS.textMuted },
+  emptyReply: { color: COLORS.textMuted, lineHeight: 20, marginTop: 6 },
+
+  replyDock: {
+    position: "absolute",
+    left: 24,
+    right: 24,
+    bottom: Platform.OS === "ios" ? 22 : 16,
+    borderRadius: 30,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.55)",
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
   },
   replyInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 20,
-    paddingHorizontal: 16,
+    maxHeight: 110,
+    paddingHorizontal: 12,
     paddingVertical: 10,
-    marginRight: 8,
-    maxHeight: 100,
-    backgroundColor: '#f9f9f9',
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    color: COLORS.text,
   },
   sendButton: {
-    backgroundColor: '#8B5CF6',
-    paddingHorizontal: 20,
+    borderRadius: 999,
+    overflow: "hidden",
+    paddingHorizontal: 18,
     paddingVertical: 12,
-    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  sendButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
+  sendDisabled: { opacity: 0.55 },
+  sendText: { color: "white", fontWeight: "900" },
 });
