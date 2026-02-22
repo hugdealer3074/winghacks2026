@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -9,11 +9,13 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-client = AsyncIOMotorClient("mongodb+srv://ellynr216_db_user:MongoDB@winghacks2026.3f8cee8.mongodb.net/") # OR Atlas URI
+# Use your Atlas URI here
+client = AsyncIOMotorClient("mongodb+srv://ellynr216_db_user:MongoDB@winghacks2026.3f8cee8.mongodb.net/")
 db = client.gatorfamily_db
 
 class Clinic(BaseModel):
@@ -30,7 +32,7 @@ class Product(BaseModel):
     price: float
     store: str
     brand: str
-    category: str # 👈 Added category
+    category: str
 
 @app.get("/clinics", response_model=List[Clinic])
 async def get_clinics():
