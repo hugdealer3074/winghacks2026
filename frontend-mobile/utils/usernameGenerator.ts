@@ -19,3 +19,6 @@ export function generateAnonymousUsername(): string {
   
   return `${adjective}${animal}${number}`;
 }
+
+// At the bottom of usernameGenerator.ts
+//export default function DummyRoute() { return null; }

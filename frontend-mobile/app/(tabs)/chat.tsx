@@ -225,12 +225,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  header: {
-    backgroundColor: '#8B5CF6',
-    padding: 20,
-    paddingTop: 60,
-    alignItems: 'center',
-  },
+  // Update these specific styles in chat.tsx
+header: {
+  backgroundColor: '#8B5CF6',
+  padding: 20,
+  paddingTop: 50, // 🚀 Standardized with Map height
+  alignItems: 'center',
+},
+inputContainer: {
+  flexDirection: 'row',
+  padding: 16,
+  paddingBottom: Platform.OS === 'ios' ? 40 : 20, 
+  backgroundColor: 'white',
+  borderTopWidth: 1,
+  borderTopColor: '#ddd',
+  alignItems: 'center',
+  // 🚀 Reduced bottom margin to prevent floating too high above tabs
+  marginBottom: Platform.OS === 'ios' ? 80 : 70, 
+},
   headerText: {
     color: 'white',
     fontSize: 20,
@@ -300,16 +312,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
-    inputContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 16, // Add extra padding for iOS
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
-    alignItems: 'center',
-    marginBottom: Platform.OS === 'ios' ? 70 : 65, // Space for tab bar
-    },
+    
   input: {
     flex: 1,
     borderWidth: 1,

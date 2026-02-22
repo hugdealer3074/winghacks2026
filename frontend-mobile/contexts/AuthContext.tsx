@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { generateAnonymousUsername } from '../app/(tabs)/utils/usernameGenerator';
+import { generateAnonymousUsername } from '../utils/usernameGenerator';
 
 interface User {
   id: string;
