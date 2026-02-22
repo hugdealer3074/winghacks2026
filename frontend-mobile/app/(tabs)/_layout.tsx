@@ -1,35 +1,14 @@
 import { Tabs } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Platform } from 'react-native';
+import { GlassTabBar } from '../../components/GlassTabBar';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#8B5CF6',
         headerShown: false,
-        tabBarStyle: {
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: 'white',
-          borderTopWidth: 1,
-          borderTopColor: '#ddd',
-          height: Platform.OS === 'ios' ? 85 : 65,
-          paddingBottom: Platform.OS === 'ios' ? 25 : 10,
-          paddingTop: 10,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-        },
       }}
+      tabBar={(props) => <GlassTabBar {...props} />}
     >
       <Tabs.Screen
         name="index"
@@ -62,4 +41,3 @@ export default function TabLayout() {
     </Tabs>
   );
 }
-

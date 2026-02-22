@@ -1,62 +1,148 @@
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+  FlatList,
+  ScrollView,
+  Platform,
+} from "react-native";
+import axios from "axios";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import Slider from "@react-native-community/slider";
+import { useRouter } from "expo-router";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 
-
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, FlatList, ScrollView, SafeAreaView, Platform } from 'react-native';
-import axios from 'axios';
-import { Ionicons } from '@expo/vector-icons';
-import Slider from '@react-native-community/slider';
-import { useRouter } from 'expo-router';
+import { BackgroundBlobs } from "../../components/BackgroundBlobs";
+import { COLORS, SPACING, RADIUS, SHADOW } from "../../theme";
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
-const BRAND_COLOR = "#8B5CF6";
-const LIGHT_PURPLE = "#F3E5F5";
 
-export default function EssentialsScreen({ navigation }: any) {
-  const [products, setProducts] = useState([]);
-  const [maxPrice, setMaxPrice] = useState(40); 
-  const [activeTab, setActiveTab] = useState('All');
+// IMPORTANT: your floating glass tab bar overlays the screen.
+// This keeps the list + content from being hidden behind it.
+const TAB_BAR_SPACE = Platform.OS === "ios" ? 120 : 110;
+
+type Product = {
+  _id?: string;
+  name: string;
+  category: string;
+  price: number;
+  store: string;
+};
+
+export default function EssentialsScreen() {
+  const router = useRouter();
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [maxPrice, setMaxPrice] = useState(40);
+  const [activeTab, setActiveTab] = useState("All");
   const [loading, setLoading] = useState(true);
-const router = useRouter();
-  const categories = ['All', 'Health', 'Feeding', 'Diapering', 'Clothing', 'Gear'];
+
+  const categories = useMemo(
+    () => ["All", "Health", "Feeding", "Diapering", "Clothing", "Gear"],
+    []
+  );
 
   useEffect(() => {
-    axios.get(`${BACKEND_URL}/products`)
-      .then(res => { setProducts(res.data); })
-      .catch(err => console.error("Essentials Fetch Error:", err))
-      .finally(() => setLoading(false));
+    let isMounted = true;
+
+    const fetchProducts = async () => {
+      try {
+        if (!BACKEND_URL) {
+          console.warn("EXPO_PUBLIC_BACKEND_URL is missing. Showing empty list.");
+          if (isMounted) setProducts([]);
+          return;
+        }
+
+        const res = await axios.get(`${BACKEND_URL}/products`, {
+          timeout: 6000,
+        });
+
+        if (isMounted) setProducts(res.data);
+      } catch (err) {
+        console.error("Essentials Fetch Error:", err);
+        if (isMounted) setProducts([]);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchProducts();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const filteredAndSorted = products
-    .filter((p: any) => (activeTab === 'All' || p.category === activeTab))
-    .filter((p: any) => p.price <= maxPrice)
-    .sort((a: any, b: any) => a.price - b.price);
+  const filteredAndSorted = useMemo(() => {
+    return products
+      .filter((p) => activeTab === "All" || p.category === activeTab)
+      .filter((p) => p.price <= maxPrice)
+      .sort((a, b) => a.price - b.price);
+  }, [products, activeTab, maxPrice]);
 
-  const renderProduct = ({ item }: { item: any }) => (
-  <TouchableOpacity 
-    activeOpacity={0.7}
-    onPress={() => {
-      console.log("Navigating to Map for:", item.store);
-      
-      // 🚀 FIXED: Navigate to the Map screen (index) within the same tab group
-      router.push({
-        pathname: "/", // Refers to app/(tabs)/index.tsx
-        params: { scrollToStore: item.store }
-      });
-    }}
-    style={styles.productCard}
-  >
+  const iconForCategory = (category: string) => {
+    switch (category) {
+      case "Health":
+        return "medkit";
+      case "Feeding":
+        return "nutrition";
+      case "Diapering":
+        return "water";
+      case "Clothing":
+        return "shirt";
+      case "Gear":
+        return "car";
+      default:
+        return "sparkles";
+    }
+  };
+
+  const renderProduct = ({ item }: { item: Product }) => (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={() => {
+        router.push({
+          pathname: "/",
+          params: { scrollToStore: item.store },
+        });
+      }}
+      style={styles.productCard}
+    >
+      {/* Glass background */}
+      <BlurView intensity={18} tint="light" style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        colors={[
+          "rgba(255,255,255,0.72)",
+          "rgba(222,210,255,0.20)",
+          "rgba(167,199,161,0.14)",
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
       <View style={styles.cardLeft}>
         <View style={styles.iconCircle}>
-          <Ionicons name={item.category === 'Health' ? "medkit" : "nutrition"} size={20} color={BRAND_COLOR} />
+          <Ionicons
+            name={iconForCategory(item.category) as any}
+            size={18}
+            color={COLORS.lavenderDeep}
+          />
         </View>
+
         <View style={{ flex: 1 }}>
           <Text style={styles.productTitle}>{item.name}</Text>
+
           <View style={styles.storeBadge}>
-            <Ionicons name="location" size={12} color={BRAND_COLOR} />
-            <Text style={{ color: BRAND_COLOR, fontWeight: 'bold' }}> {item.store} →</Text>
+            <Ionicons name="location" size={12} color={COLORS.lavenderDeep} />
+            <Text style={styles.storeBadgeText}> {item.store} →</Text>
           </View>
         </View>
       </View>
+
       <View style={styles.cardRight}>
         <Text style={[styles.productPrice, item.price === 0 && styles.freeText]}>
           {item.price === 0 ? "FREE" : `$${item.price.toFixed(2)}`}
@@ -66,51 +152,110 @@ const router = useRouter();
   );
 
   return (
-    <View style={styles.container}>
-      {/* 🚀 FIXED: New Header + Filters Wrapper */}
-      <View style={styles.headerWrapper}>
-        <View style={styles.topBranding}>
-          <Text style={styles.headerTitle}>Day-to-Day Necessities</Text>
-          <Ionicons name="cart" size={24} color="white" />
-        </View>
+    <View style={styles.screen}>
+      <BackgroundBlobs />
 
-        <View style={styles.categoryBar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 15 }}>
-            {categories.map(cat => (
-              <TouchableOpacity 
-                key={cat} 
-                onPress={() => setActiveTab(cat)} 
-                style={[styles.catTab, activeTab === cat && styles.activeCatTab]}
+      {/* Forum-style Header (full-width glass banner) */}
+      <View style={styles.headerWrap}>
+        <BlurView intensity={22} tint="light" style={StyleSheet.absoluteFill} />
+        <LinearGradient
+          colors={[
+            "rgba(160,131,249,0.22)",
+            "rgba(167,199,161,0.10)",
+            "rgba(255,251,249,0.40)",
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+
+        <Text style={styles.headerTitle}>Essentials</Text>
+        <Text style={styles.headerSubtitle}>
+          Budget-friendly items and free resources near you
+        </Text>
+      </View>
+
+      {/* Controls (glass card) */}
+      <View style={styles.controlsGlass}>
+        <BlurView intensity={18} tint="light" style={StyleSheet.absoluteFill} />
+        <LinearGradient
+          colors={[
+            "rgba(255,255,255,0.62)",
+            "rgba(222,210,255,0.14)",
+            "rgba(167,199,161,0.10)",
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+
+        {/* Category Tabs */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryRow}
+        >
+          {categories.map((cat) => {
+            const active = activeTab === cat;
+            return (
+              <TouchableOpacity
+                key={cat}
+                onPress={() => setActiveTab(cat)}
+                activeOpacity={0.9}
+                style={[styles.catTab, active && styles.catTabActive]}
               >
-                <Text style={[styles.catTabText, activeTab === cat && styles.activeCatTabText]}>{cat}</Text>
+                <Text style={[styles.catTabText, active && styles.catTabTextActive]}>
+                  {cat}
+                </Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+            );
+          })}
+        </ScrollView>
 
-        <View style={styles.priceFilterContainer}>
-          <View style={styles.priceHeaderRow}>
-             <Text style={styles.priceHeaderText}>Budget</Text>
-             <Text style={styles.priceValueText}>Under ${maxPrice}</Text>
+        {/* Budget */}
+        <View style={styles.budgetRow}>
+          <View style={styles.budgetHeaderRow}>
+            <Text style={styles.budgetTitle}>Budget</Text>
+            <Text style={styles.budgetValue}>Under ${maxPrice}</Text>
           </View>
-          <Slider 
-            style={{ width: '100%', height: 40 }} 
-            minimumValue={0} maximumValue={40} step={5} 
-            value={maxPrice} onValueChange={setMaxPrice} 
-            minimumTrackTintColor={BRAND_COLOR} thumbTintColor={BRAND_COLOR} 
+
+          <Slider
+            style={{ width: "100%", height: 36 }}
+            minimumValue={0}
+            maximumValue={40}
+            step={5}
+            value={maxPrice}
+            onValueChange={setMaxPrice}
+            minimumTrackTintColor={COLORS.lavenderDeep}
+            thumbTintColor={COLORS.lavenderDeep}
           />
         </View>
       </View>
 
+      {/* List */}
       {loading ? (
-        <ActivityIndicator size="large" color={BRAND_COLOR} style={{ marginTop: 20 }} />
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={COLORS.lavenderDeep} />
+          <Text style={styles.loadingText}>Finding essentials…</Text>
+        </View>
       ) : (
         <FlatList
           data={filteredAndSorted}
           renderItem={renderProduct}
-          keyExtractor={(item, index) => item._id || index.toString()}
-          contentContainerStyle={styles.scrollPadding}
-          ListEmptyComponent={<Text style={styles.emptyText}>No items found in this budget.</Text>}
+          keyExtractor={(item, index) =>
+            `${item._id ?? "noid"}-${item.name}-${item.store}-${index}`
+          }
+          contentContainerStyle={styles.listPadding}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyEmoji}>🧺</Text>
+              <Text style={styles.emptyTitle}>No items found</Text>
+              <Text style={styles.emptyText}>
+                Try increasing your budget or changing categories.
+              </Text>
+            </View>
+          }
         />
       )}
     </View>
@@ -118,74 +263,197 @@ const router = useRouter();
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  headerWrapper: {
-    backgroundColor: '#fff',
-    zIndex: 10,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
-  // 🚀 Update these specific styles in essentials.tsx
-topBranding: {
-  backgroundColor: BRAND_COLOR,
-  // 🚀 Standardized to match the Map page header height
-  paddingTop: Platform.OS === 'ios' ? 60 : 40, 
-  paddingBottom: 20, 
-  paddingHorizontal: 20,
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  // Gives it that solid "Header" feel
-  height: Platform.OS === 'ios' ? 110 : 90, 
-},
-headerTitle: {
-  color: 'white',
-  fontSize: 20, // 🚀 Standard header font size
-  fontWeight: '700',
-},
-  // ... keep the rest of your categoryBar, priceFilterContainer, and productCard styles
-  categoryBar: { 
-    backgroundColor: '#fff', 
-    paddingVertical: 10, 
+
+  /* ===== Forum-style header ===== */
+  headerWrap: {
+    paddingTop: Platform.OS === "ios" ? 60 : 42,
+    paddingBottom: SPACING.md,
+    paddingHorizontal: SPACING.xl,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.45)",
   },
-  priceFilterContainer: { 
-    padding: 20, 
-    backgroundColor: '#fff' 
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: COLORS.text,
   },
-  storeBadge: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginTop: 4,
+  headerSubtitle: {
+    marginTop: 6,
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.textMuted,
   },
-  catTab: { paddingHorizontal: 16, paddingVertical: 8, marginRight: 8, borderRadius: 20, backgroundColor: '#eee' },
-  activeCatTab: { backgroundColor: BRAND_COLOR },
-  catTabText: { color: '#666', fontWeight: '600' },
-  activeCatTabText: { color: 'white' },
-  priceHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
-  priceHeaderText: { fontSize: 14, color: '#666', fontWeight: '600' },
-  priceValueText: { color: BRAND_COLOR, fontWeight: 'bold' },
-  scrollPadding: { padding: 15, paddingBottom: 120 }, 
-  productCard: { 
-    backgroundColor: 'white', 
-    borderRadius: 15, 
-    padding: 16, 
-    marginBottom: 12, 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+
+  /* ===== Controls card ===== */
+  controlsGlass: {
+    marginTop: SPACING.md,
+    marginHorizontal: SPACING.lg,
+    borderRadius: RADIUS.xl,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.55)",
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    ...SHADOW.soft,
   },
-  cardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  iconCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: LIGHT_PURPLE, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  productTitle: { fontSize: 16, fontWeight: '700' },
-  productPrice: { fontSize: 18, fontWeight: 'bold' },
-  freeText: { color: '#2ecc71' },
-  emptyText: { marginTop: 15, fontSize: 16, color: 'gray', textAlign: 'center' },
-  cardRight: { alignItems: 'flex-end', justifyContent: 'center' }
+
+  categoryRow: {
+    paddingHorizontal: 2,
+    gap: 10,
+    paddingBottom: SPACING.sm,
+  },
+
+  catTab: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1,
+    borderColor: "rgba(34,34,34,0.10)",
+  },
+  catTabActive: {
+    backgroundColor: "rgba(222,210,255,0.75)",
+    borderColor: "rgba(160,131,249,0.40)",
+  },
+  catTabText: {
+    color: COLORS.textMuted,
+    fontWeight: "800",
+    fontSize: 13,
+  },
+  catTabTextActive: {
+    color: COLORS.text,
+  },
+
+  budgetRow: {
+    marginTop: 6,
+    paddingTop: SPACING.sm,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(34,34,34,0.08)",
+  },
+
+  budgetHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  budgetTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: COLORS.text,
+  },
+  budgetValue: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: COLORS.lavenderDeep,
+  },
+
+  /* ===== List ===== */
+  listPadding: {
+    paddingTop: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: TAB_BAR_SPACE + 40,
+    gap: 12,
+  },
+
+  loadingWrap: {
+    paddingTop: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.textMuted,
+  },
+
+  emptyState: {
+    paddingTop: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: SPACING.xl,
+  },
+  emptyEmoji: { fontSize: 28, marginBottom: 8 },
+  emptyTitle: { fontSize: 16, fontWeight: "800", color: COLORS.text },
+  emptyText: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.textMuted,
+    textAlign: "center",
+  },
+
+  /* ===== Product card ===== */
+  productCard: {
+    borderRadius: RADIUS.xl,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.55)",
+    padding: SPACING.lg,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    ...SHADOW.soft,
+  },
+
+  cardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: 12,
+  },
+
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    backgroundColor: "rgba(222,210,255,0.65)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(34,34,34,0.10)",
+  },
+
+  productTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: COLORS.text,
+  },
+
+  storeBadge: {
+    marginTop: 6,
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1,
+    borderColor: "rgba(34,34,34,0.10)",
+  },
+  storeBadgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.textMuted,
+  },
+
+  cardRight: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+    paddingLeft: 10,
+  },
+
+  productPrice: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: COLORS.text,
+  },
+
+  freeText: {
+    color: COLORS.lavenderDeep,
+  },
 });

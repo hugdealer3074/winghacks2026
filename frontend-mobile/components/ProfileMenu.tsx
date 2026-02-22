@@ -1,294 +1,4 @@
-// import {
-//   View,
-//   Text,
-//   TouchableOpacity,
-//   StyleSheet,
-//   Modal,
-//   Animated,
-//   Dimensions,
-//   Alert,
-// } from 'react-native';
-// import { useState, useRef, useEffect } from 'react';
-// import Ionicons from '@expo/vector-icons/Ionicons';
-// import { useRouter } from 'expo-router';
-// import { useAuth } from '../contexts/AuthContext';
-
-// const { width } = Dimensions.get('window');
-
-// interface ProfileMenuProps {
-//   visible: boolean;
-//   onClose: () => void;
-// }
-
-// export default function ProfileMenu({ visible, onClose }: ProfileMenuProps) {
-//   const slideAnim = useRef(new Animated.Value(-width * 0.75)).current;
-//   const router = useRouter();
-//   const { user, logout } = useAuth();
-
-//   useEffect(() => {
-//     if (visible) {
-//       Animated.spring(slideAnim, {
-//         toValue: 0,
-//         useNativeDriver: true,
-//         tension: 65,
-//         friction: 11,
-//       }).start();
-//     } else {
-//       Animated.timing(slideAnim, {
-//         toValue: -width * 0.75,
-//         duration: 250,
-//         useNativeDriver: true,
-//       }).start();
-//     }
-//   }, [visible]);
-
-//   const handleLogout = () => {
-//     Alert.alert(
-//       'Logout',
-//       'Are you sure you want to logout?',
-//       [
-//         { text: 'Cancel', style: 'cancel' },
-//         {
-//           text: 'Logout',
-//           style: 'destructive',
-//           onPress: async () => {
-//             onClose();
-//             await logout();
-//           },
-//         },
-//       ]
-//     );
-//   };
-
-//   const handleLogin = () => {
-//     onClose();
-//     router.push('/auth/login');
-//   };
-
-//   if (!visible) return null;
-
-//   return (
-//     <Modal
-//       transparent
-//       visible={visible}
-//       animationType="none"
-//       onRequestClose={onClose}
-//     >
-//       {/* Backdrop */}
-//       <TouchableOpacity
-//         style={styles.backdrop}
-//         activeOpacity={1}
-//         onPress={onClose}
-//       >
-//         {/* Menu Panel */}
-//         <Animated.View
-//           style={[
-//             styles.menuPanel,
-//             { transform: [{ translateX: slideAnim }] },
-//           ]}
-//           onStartShouldSetResponder={() => true}
-//         >
-//           {/* Header */}
-//           <View style={styles.header}>
-//             <Ionicons name="person-circle" size={32} color="white" />
-//             <Text style={styles.headerTitle}>Profile</Text>
-//             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-//               <Ionicons name="close" size={24} color="white" />
-//             </TouchableOpacity>
-//           </View>
-
-//           {/* User Info Section */}
-//           <View style={styles.userSection}>
-//             <View style={styles.avatarContainer}>
-//               <Text style={styles.avatarText}>
-//                 {user?.anonymousUsername?.charAt(0) || '?'}
-//               </Text>
-//             </View>
-//             {user ? (
-//               <>
-//                 <Text style={styles.username}>{user.anonymousUsername}</Text>
-//                 <Text style={styles.userEmail}>{user.email}</Text>
-//               </>
-//             ) : (
-//               <>
-//                 <Text style={styles.username}>Guest User</Text>
-//                 <Text style={styles.userEmail}>Not logged in</Text>
-//               </>
-//             )}
-//           </View>
-
-//           {/* Menu Items */}
-//           <View style={styles.menuItems}>
-//             <TouchableOpacity style={styles.menuItem}>
-//               <Ionicons name="settings-outline" size={24} color="#333" />
-//               <Text style={styles.menuItemText}>Settings</Text>
-//             </TouchableOpacity>
-
-//             <TouchableOpacity style={styles.menuItem}>
-//               <Ionicons name="help-circle-outline" size={24} color="#333" />
-//               <Text style={styles.menuItemText}>Help & Support</Text>
-//             </TouchableOpacity>
-
-//             <TouchableOpacity style={styles.menuItem}>
-//               <Ionicons name="information-circle-outline" size={24} color="#333" />
-//               <Text style={styles.menuItemText}>About</Text>
-//             </TouchableOpacity>
-//           </View>
-
-//           {/* Login/Logout Button */}
-//           <View style={styles.authSection}>
-//             {user ? (
-//               <TouchableOpacity 
-//                 style={[styles.loginButton, styles.logoutButton]}
-//                 onPress={handleLogout}
-//               >
-//                 <Ionicons name="log-out-outline" size={20} color="white" />
-//                 <Text style={styles.loginButtonText}>Logout</Text>
-//               </TouchableOpacity>
-//             ) : (
-//               <TouchableOpacity 
-//                 style={styles.loginButton}
-//                 onPress={handleLogin}
-//               >
-//                 <Ionicons name="log-in-outline" size={20} color="white" />
-//                 <Text style={styles.loginButtonText}>Login / Sign Up</Text>
-//               </TouchableOpacity>
-//             )}
-//           </View>
-
-//           {/* Footer */}
-//           <View style={styles.footer}>
-//             <Text style={styles.footerText}>GatorFamily v1.0</Text>
-//             <Text style={styles.footerSubtext}>Made with 💜 at WiNGHacks 2026</Text>
-//           </View>
-//         </Animated.View>
-//       </TouchableOpacity>
-//     </Modal>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   backdrop: {
-//     flex: 1,
-//     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-//   },
-//   menuPanel: {
-//     position: 'absolute',
-//     left: 0,
-//     top: 0,
-//     bottom: 0,
-//     width: width * 0.75,
-//     backgroundColor: 'white',
-//     shadowColor: '#000',
-//     shadowOffset: { width: 2, height: 0 },
-//     shadowOpacity: 0.3,
-//     shadowRadius: 10,
-//     elevation: 10,
-//   },
-//   header: {
-//     backgroundColor: '#8B5CF6',
-//     paddingTop: 60,
-//     paddingBottom: 20,
-//     paddingHorizontal: 20,
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//   },
-//   headerTitle: {
-//     flex: 1,
-//     fontSize: 24,
-//     fontWeight: 'bold',
-//     color: 'white',
-//     marginLeft: 12,
-//   },
-//   closeButton: {
-//     width: 32,
-//     height: 32,
-//     borderRadius: 16,
-//     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//   },
-//   userSection: {
-//     alignItems: 'center',
-//     paddingVertical: 30,
-//     borderBottomWidth: 1,
-//     borderBottomColor: '#f0f0f0',
-//   },
-//   avatarContainer: {
-//     width: 80,
-//     height: 80,
-//     borderRadius: 40,
-//     backgroundColor: '#8B5CF6',
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     marginBottom: 16,
-//   },
-//   avatarText: {
-//     fontSize: 36,
-//     fontWeight: 'bold',
-//     color: 'white',
-//   },
-//   username: {
-//     fontSize: 20,
-//     fontWeight: 'bold',
-//     color: '#333',
-//     marginBottom: 4,
-//   },
-//   userEmail: {
-//     fontSize: 14,
-//     color: '#666',
-//   },
-//   menuItems: {
-//     paddingVertical: 20,
-//   },
-//   menuItem: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     paddingVertical: 16,
-//     paddingHorizontal: 20,
-//   },
-//   menuItemText: {
-//     fontSize: 16,
-//     color: '#333',
-//     marginLeft: 16,
-//   },
-//   authSection: {
-//     paddingHorizontal: 20,
-//     marginTop: 'auto',
-//     paddingBottom: 20,
-//   },
-//   loginButton: {
-//     flexDirection: 'row',
-//     backgroundColor: '#8B5CF6',
-//     padding: 16,
-//     borderRadius: 12,
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//   },
-//   logoutButton: {
-//     backgroundColor: '#ff4444',
-//   },
-//   loginButtonText: {
-//     color: 'white',
-//     fontSize: 16,
-//     fontWeight: 'bold',
-//     marginLeft: 8,
-//   },
-//   footer: {
-//     alignItems: 'center',
-//     paddingBottom: 30,
-//   },
-//   footerText: {
-//     fontSize: 12,
-//     color: '#999',
-//   },
-//   footerSubtext: {
-//     fontSize: 11,
-//     color: '#bbb',
-//     marginTop: 4,
-//   },
-// });
-
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -298,14 +8,19 @@ import {
   Animated,
   Dimensions,
   Alert,
-} from 'react-native';
-import { useState, useRef, useEffect } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
-import { useAuth } from '../contexts/AuthContext';
-// 🚀 Adjust this path if your generator is in a different folder
-import { generateAnonymousUsername } from '../utils/usernameGenerator';
-const { width } = Dimensions.get('window');
+  Platform,
+} from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+
+import { useAuth } from "../contexts/AuthContext";
+import { generateAnonymousUsername } from "../utils/usernameGenerator";
+import { COLORS, SPACING, RADIUS, SHADOW } from "../theme";
+
+const { width } = Dimensions.get("window");
+const PANEL_W = Math.min(width * 0.82, 340);
 
 interface ProfileMenuProps {
   visible: boolean;
@@ -313,19 +28,15 @@ interface ProfileMenuProps {
 }
 
 export default function ProfileMenu({ visible, onClose }: ProfileMenuProps) {
-  const slideAnim = useRef(new Animated.Value(-width * 0.75)).current;
+  const slideAnim = useRef(new Animated.Value(-PANEL_W)).current;
   const router = useRouter();
   const { user, logout } = useAuth();
-  
-  // 🚀 State for the guest name
-  const [guestName, setGuestName] = useState('');
+
+  const [guestName, setGuestName] = useState("");
 
   useEffect(() => {
     if (visible) {
-      // 🚀 Generate initial guest name if not logged in
-      if (!user && !guestName) {
-        setGuestName(generateAnonymousUsername());
-      }
+      if (!user && !guestName) setGuestName(generateAnonymousUsername());
 
       Animated.spring(slideAnim, {
         toValue: 0,
@@ -335,141 +46,145 @@ export default function ProfileMenu({ visible, onClose }: ProfileMenuProps) {
       }).start();
     } else {
       Animated.timing(slideAnim, {
-        toValue: -width * 0.75,
-        duration: 250,
+        toValue: -PANEL_W,
+        duration: 220,
         useNativeDriver: true,
       }).start();
     }
   }, [visible, user]);
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            onClose();
-            await logout();
-            setGuestName(''); // Reset guest name on logout
-          },
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          onClose();
+          await logout();
+          setGuestName("");
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleLogin = () => {
     onClose();
-    router.push('/auth/login');
+    router.push("/auth/login");
   };
 
   if (!visible) return null;
 
+  const displayName = user ? user.anonymousUsername : guestName || "Guest User";
+  const displayEmail = user ? user.email : "Browsing as Guest";
+  const avatarLetter = displayName?.charAt(0)?.toUpperCase() || "?";
+
   return (
-    <Modal
-      transparent
-      visible={visible}
-      animationType="none"
-      onRequestClose={onClose}
-    >
+    <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
       {/* Backdrop */}
-      <TouchableOpacity
-        style={styles.backdrop}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        {/* Menu Panel */}
+      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
+        {/* Drawer */}
         <Animated.View
-          style={[
-            styles.menuPanel,
-            { transform: [{ translateX: slideAnim }] },
-          ]}
+          style={[styles.panel, { transform: [{ translateX: slideAnim }] }]}
           onStartShouldSetResponder={() => true}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <Ionicons name="person-circle" size={32} color="white" />
-            <Text style={styles.headerTitle}>Profile</Text>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Ionicons name="close" size={24} color="white" />
-            </TouchableOpacity>
-          </View>
+          {/* Glass shell */}
+          <View style={styles.glassShell}>
+            <BlurView intensity={Platform.OS === "ios" ? 30 : 18} tint="light" style={StyleSheet.absoluteFill} />
+            <LinearGradient
+              colors={[
+                "rgba(160,131,249,0.20)",
+                "rgba(167,199,161,0.14)",
+                "rgba(255,255,255,0.22)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
 
-          {/* User Info Section */}
-          <View style={styles.userSection}>
-            <View style={styles.avatarContainer}>
-              <Text style={styles.avatarText}>
-                {user ? user.anonymousUsername?.charAt(0) : guestName.charAt(0) || '?'}
-              </Text>
+            {/* Header Row */}
+            <View style={styles.headerRow}>
+              <View style={styles.headerLeft}>
+                <View style={styles.headerIconPill}>
+                  <Ionicons name="sparkles" size={18} color={COLORS.lavenderDeep} />
+                </View>
+                <View>
+                  <Text style={styles.headerTitle}>Ruma</Text>
+                  <Text style={styles.headerSubtitle}>Your resource care buddy</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.9}>
+                <Ionicons name="close" size={20} color={COLORS.text} />
+              </TouchableOpacity>
             </View>
-            
-            <View style={styles.nameRow}>
-              <Text style={styles.username}>
-                {user ? user.anonymousUsername : guestName || 'Guest User'}
-              </Text>
-              
-              {/* 🚀 Refresh button for Guest users */}
-              {!user && (
-                <TouchableOpacity 
-                  onPress={() => setGuestName(generateAnonymousUsername())}
-                  style={styles.refreshButton}
-                >
-                  <Ionicons name="refresh-circle" size={24} color="#8B5CF6" />
+
+            {/* User section */}
+            <View style={styles.userCard}>
+              <BlurView intensity={18} tint="light" style={StyleSheet.absoluteFill} />
+              <LinearGradient
+                colors={[
+                  "rgba(255,255,255,0.70)",
+                  "rgba(222,210,255,0.22)",
+                  "rgba(167,199,161,0.12)",
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+
+              <View style={styles.userTopRow}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{avatarLetter}</Text>
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.username}>{displayName}</Text>
+
+                    {!user && (
+                      <TouchableOpacity
+                        onPress={() => setGuestName(generateAnonymousUsername())}
+                        style={styles.refreshButton}
+                        activeOpacity={0.85}
+                      >
+                        <Ionicons name="refresh" size={16} color={COLORS.lavenderDeep} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  <Text style={styles.userEmail}>{displayEmail}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Menu items */}
+            <View style={styles.menuList}>
+              <MenuItem icon="settings-outline" label="Settings" onPress={() => {}} />
+              <MenuItem icon="help-circle-outline" label="Help & Support" onPress={() => {}} />
+              <MenuItem icon="information-circle-outline" label="About" onPress={() => {}} />
+            </View>
+
+            {/* Auth button */}
+            <View style={styles.authSection}>
+              {user ? (
+                <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.9}>
+                  <Ionicons name="log-out-outline" size={18} color="white" />
+                  <Text style={styles.authBtnText}>Logout</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} activeOpacity={0.9}>
+                  <Ionicons name="log-in-outline" size={18} color="white" />
+                  <Text style={styles.authBtnText}>Login / Sign Up</Text>
                 </TouchableOpacity>
               )}
             </View>
 
-            <Text style={styles.userEmail}>
-              {user ? user.email : 'Browsing as Guest'}
-            </Text>
-          </View>
-
-          {/* Menu Items */}
-          <View style={styles.menuItems}>
-            <TouchableOpacity style={styles.menuItem}>
-              <Ionicons name="settings-outline" size={24} color="#333" />
-              <Text style={styles.menuItemText}>Settings</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.menuItem}>
-              <Ionicons name="help-circle-outline" size={24} color="#333" />
-              <Text style={styles.menuItemText}>Help & Support</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.menuItem}>
-              <Ionicons name="information-circle-outline" size={24} color="#333" />
-              <Text style={styles.menuItemText}>About</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Login/Logout Button */}
-          <View style={styles.authSection}>
-            {user ? (
-              <TouchableOpacity 
-                style={[styles.loginButton, styles.logoutButton]}
-                onPress={handleLogout}
-              >
-                <Ionicons name="log-out-outline" size={20} color="white" />
-                <Text style={styles.loginButtonText}>Logout</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity 
-                style={styles.loginButton}
-                onPress={handleLogin}
-              >
-                <Ionicons name="log-in-outline" size={20} color="white" />
-                <Text style={styles.loginButtonText}>Login / Sign Up</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Footer */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>GatorFamily v1.0</Text>
-            <Text style={styles.footerSubtext}>Made with 💜 at WiNGHacks 2026</Text>
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>GatorFamily v1.0</Text>
+              <Text style={styles.footerSubtext}>Made with 💜 at WiNGHacks 2026</Text>
+            </View>
           </View>
         </Animated.View>
       </TouchableOpacity>
@@ -477,132 +192,236 @@ export default function ProfileMenu({ visible, onClose }: ProfileMenuProps) {
   );
 }
 
+/** A single row in the menu */
+function MenuItem({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: any;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.9}>
+      <View style={styles.menuIconPill}>
+        <Ionicons name={icon} size={18} color={COLORS.lavenderDeep} />
+      </View>
+      <Text style={styles.menuLabel}>{label}</Text>
+      <Ionicons name="chevron-forward" size={18} color="rgba(34,34,34,0.35)" />
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: "rgba(10, 10, 10, 0.35)", // softer than harsh black
   },
-  menuPanel: {
-    position: 'absolute',
+
+  panel: {
+    position: "absolute",
     left: 0,
     top: 0,
     bottom: 0,
-    width: width * 0.75,
-    backgroundColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
+    width: PANEL_W,
   },
-  header: {
-    backgroundColor: '#8B5CF6',
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
+
+  glassShell: {
+    flex: 1,
+    borderTopRightRadius: RADIUS.xl,
+    borderBottomRightRadius: RADIUS.xl,
+    overflow: "hidden",
+    borderRightWidth: 1,
+    borderRightColor: "rgba(255,255,255,0.55)",
+    paddingTop: Platform.OS === "ios" ? 54 : 34,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.xl,
+    ...SHADOW.soft,
+  },
+
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: SPACING.lg,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  headerIconPill: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    backgroundColor: "rgba(222,210,255,0.70)",
+    borderWidth: 1,
+    borderColor: "rgba(34,34,34,0.10)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    flex: 1,
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-    marginLeft: 12,
+    fontSize: 22,
+    fontWeight: "900",
+    color: COLORS.text,
   },
+  headerSubtitle: {
+    marginTop: 2,
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.textMuted,
+  },
+
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1,
+    borderColor: "rgba(34,34,34,0.10)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  userSection: {
-    alignItems: 'center',
-    paddingVertical: 30,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+
+  userCard: {
+    borderRadius: RADIUS.xl,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.55)",
+    padding: SPACING.lg,
+    marginBottom: SPACING.lg,
+    ...SHADOW.soft,
   },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
+
+  userTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
-  refreshButton: {
-    marginLeft: 8,
-  },
-  avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#8B5CF6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
+
+  avatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 999,
+    backgroundColor: "rgba(160,131,249,0.90)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatarText: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: 'white',
+    color: "white",
+    fontSize: 22,
+    fontWeight: "900",
   },
+
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
   username: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 18,
+    fontWeight: "900",
+    color: COLORS.text,
   },
+  refreshButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    backgroundColor: "rgba(222,210,255,0.60)",
+    borderWidth: 1,
+    borderColor: "rgba(34,34,34,0.10)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   userEmail: {
-    fontSize: 14,
-    color: '#666',
+    marginTop: 4,
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.textMuted,
   },
-  menuItems: {
-    paddingVertical: 20,
+
+  menuList: {
+    gap: 10,
   },
+
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: RADIUS.xl,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1,
+    borderColor: "rgba(34,34,34,0.10)",
   },
-  menuItemText: {
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 16,
+
+  menuIconPill: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    backgroundColor: "rgba(222,210,255,0.65)",
+    borderWidth: 1,
+    borderColor: "rgba(34,34,34,0.10)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
   },
+
+  menuLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "800",
+    color: COLORS.text,
+  },
+
   authSection: {
-    paddingHorizontal: 20,
-    marginTop: 'auto',
-    paddingBottom: 20,
+    marginTop: "auto",
+    paddingTop: SPACING.lg,
   },
-  loginButton: {
-    flexDirection: 'row',
-    backgroundColor: '#8B5CF6',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+
+  loginBtn: {
+    flexDirection: "row",
+    gap: 10,
+    backgroundColor: COLORS.lavenderDeep,
+    paddingVertical: 14,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  logoutButton: {
-    backgroundColor: '#ff4444',
+
+  logoutBtn: {
+    flexDirection: "row",
+    gap: 10,
+    backgroundColor: "rgba(239,68,68,0.92)",
+    paddingVertical: 14,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  loginButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
+
+  authBtnText: {
+    color: "white",
+    fontSize: 15,
+    fontWeight: "900",
   },
+
   footer: {
-    alignItems: 'center',
-    paddingBottom: 30,
+    alignItems: "center",
+    paddingTop: SPACING.lg,
   },
   footerText: {
     fontSize: 12,
-    color: '#999',
+    fontWeight: "700",
+    color: "rgba(34,34,34,0.45)",
   },
   footerSubtext: {
     fontSize: 11,
-    color: '#bbb',
+    fontWeight: "600",
+    color: "rgba(34,34,34,0.35)",
     marginTop: 4,
+    textAlign: "center",
   },
 });
